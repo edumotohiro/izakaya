@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>家庭内居酒屋「大将、あれ頼む！」</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@700&family=Yuji+Boku&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background-color: #2b1810;
+            color: #f3e9dc;
+            font-family: 'Zen Maru Gothic', sans-serif;
+        }
+        .store-title {
+            font-family: 'Yuji Boku', serif;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center p-3 sm:p-6">
+
+    <!-- 看板 Header -->
+    <header class="w-full max-w-md bg-[#1a0f0a] border-4 border-[#d4af37] rounded-2xl p-4 text-center shadow-2xl mb-4 relative">
+        <div class="absolute -top-2.5 -left-2 bg-red-800 text-yellow-300 text-[10px] px-2.5 py-1 rounded-br font-bold shadow">本日も営業中</div>
+        <h1 class="text-2xl font-bold text-[#f59e0b] tracking-widest mt-1 store-title">居酒屋『我が家』</h1>
+        <p class="text-xs text-stone-400 mt-0.5">〜 自由な注文、大歓迎！ 〜</p>
+        <div class="mt-3 bg-black/60 rounded-xl p-2.5 text-xs flex justify-around border border-stone-700">
+            <span>担当大将：<strong class="text-amber-400" id="daisho-display">パパ</strong></span>
+            <span>本日のお仕事完了：<strong class="text-green-400" id="order-count">0</strong> 品</span>
+        </div>
+    </header>
+
+    <!-- メインコンテンツ -->
+    <main class="w-full max-w-md space-y-4">
+
+        <!-- 注文フォーム（客席側：自由書き込み対応） -->
+        <section class="bg-[#3e2723] border-2 border-[#8d6e63] rounded-2xl p-4 shadow-lg">
+            <h2 class="text-sm font-bold text-amber-200 border-b border-[#5d4037] pb-2 mb-3 flex items-center justify-between">
+                <span>📝 自由にお品書きを書く（注文票）</span>
+                <span class="text-[10px] bg-amber-900 text-amber-200 px-2 py-0.5 rounded">客席端末</span>
+            </h2>
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs text-stone-300 mb-1">頼みたい用事（自由に入力）</label>
+                    <input type="text" id="custom-menu-input" placeholder="例：お風呂の栓をして！、醤油買ってきて" class="w-full px-3 py-2.5 rounded-xl bg-[#2b1810] border border-[#6d4c41] text-white focus:outline-none focus:border-amber-500 text-sm">
+                </div>
+                
+                <!-- 定番クイックボタン -->
+                <div>
+                    <span class="block text-[10px] text-stone-400 mb-1">⚡ ワンタッチクイック注文：</span>
+                    <div class="flex flex-wrap gap-1.5">
+                        <button onclick="quickOrder('お風呂掃除お願いします！')" class="bg-[#2b1810] hover:bg-[#4e342e] border border-[#6d4c41] text-amber-300 text-xs px-2.5 py-1 rounded-lg">風呂掃除</button>
+                        <button onclick="quickOrder('ゴミ出しよろしく！')" class="bg-[#2b1810] hover:bg-[#4e342e] border border-[#6d4c41] text-amber-300 text-xs px-2.5 py-1 rounded-lg">ゴミ出し</button>
+                        <button onclick="quickOrder('寝かしつけバトンタッチ！')" class="bg-[#2b1810] hover:bg-[#4e342e] border border-[#6d4c41] text-amber-300 text-xs px-2.5 py-1 rounded-lg">寝かしつけ</button>
+                        <button onclick="quickOrder('お茶（水分）持ってきて')" class="bg-[#2b1810] hover:bg-[#4e342e] border border-[#6d4c41] text-amber-300 text-xs px-2.5 py-1 rounded-lg">お茶・水分</button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 pt-1">
+                    <div>
+                        <label class="block text-xs text-stone-300 mb-1">手間（重さ）</label>
+                        <select id="menu-reward" class="w-full px-2.5 py-2 rounded-xl bg-[#2b1810] border border-[#6d4c41] text-white text-xs">
+                            <option value="小鉢 (5分)">小鉢 (5分・軽微)</option>
+                            <option value="定番 (15分)">定番 (15分・普通)</option>
+                            <option value="特選メイン (30分+)">特選！(30分・大仕事)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-stone-300 mb-1">指名先</label>
+                        <select id="menu-target" class="w-full px-2.5 py-2 rounded-xl bg-[#2b1810] border border-[#6d4c41] text-white text-xs">
+                            <option value="大将">大将へ</option>
+                            <option value="女将/相方">女将へ</option>
+                            <option value="どなたでも！">どなたでも！</option>
+                        </select>
+                    </div>
+                </div>
+                <button onclick="addOrder()" class="w-full bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 hover:to-yellow-500 text-stone-950 font-bold py-2.5 rounded-xl shadow-md transition transform active:scale-95 text-xs tracking-wider">
+                    🏮 威勢よく注文を通す！
+                </button>
+            </div>
+        </section>
+
+        <!-- 厨房カウンター（未調理の注文一覧） -->
+        <section class="bg-[#1e1e1e] border-2 border-stone-700 rounded-2xl p-4 shadow-lg">
+            <h2 class="text-sm font-bold text-yellow-400 border-b border-stone-800 pb-2 mb-3 flex items-center justify-between">
+                <span>🔥 厨房カウンター（未対応）</span>
+                <span id="badge-count" class="bg-red-600 text-white text-xs px-2 py-0.5 rounded-full font-bold">0件</span>
+            </h2>
+            <div id="order-list" class="space-y-2.5 max-h-72 overflow-y-auto pr-1">
+                <div class="text-center text-stone-500 text-xs py-8">現在、注文はありません。平和な店内です。</div>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        // ローカルストレージを使って同じブラウザ内（または複数タブ）で同期できるようにする
+        let orders = JSON.parse(localStorage.getItem('izakaya_orders')) || [
+            { id: 1, text: "お風呂の栓をしてお湯張り", reward: "小鉢 (5分)", target: "大将", time: "18:00" },
+            { id: 2, text: "明日の保育園準備チェック", reward: "定番 (15分)", target: "女将/相方", time: "18:05" }
+        ];
+
+        let completedCount = parseInt(localStorage.getItem('izakaya_completed')) || 0;
+
+        function saveAndRender() {
+            localStorage.setItem('izakaya_orders', JSON.stringify(orders));
+            localStorage.setItem('izakaya_completed', completedCount);
+            render();
+        }
+
+        function render() {
+            const listEl = document.getElementById('order-list');
+            const badgeEl = document.getElementById('badge-count');
+            const countEl = document.getElementById('order-count');
+
+            badgeEl.innerText = orders.length + '件';
+            countEl.innerText = completedCount;
+
+            if (orders.length === 0) {
+                listEl.innerHTML = `<div class="text-center text-stone-500 text-xs py-8">現在、注文はありません。平和な店内です。</div>`;
+                return;
+            }
+
+            listEl.innerHTML = '';
+            orders.forEach((order, index) => {
+                const item = document.createElement('div');
+                item.className = "bg-[#2a2a2a] border-l-4 border-amber-500 p-3 rounded-xl flex items-center justify-between shadow";
+                item.innerHTML = `
+                    <div class="space-y-0.5">
+                        <div class="text-[10px] text-amber-400 font-bold">【宛先: ${order.target}】 <span class="bg-stone-800 text-stone-300 px-1.5 py-0.2 rounded">${order.reward}</span></div>
+                        <div class="text-sm font-bold text-white">${order.text}</div>
+                        <div class="text-[10px] text-stone-400">注文時刻: ${order.time}</div>
+                    </div>
+                    <button onclick="completeOrder(${index})" class="bg-green-700 hover:bg-green-600 text-white text-xs px-3.5 py-2 rounded-xl font-bold transition shadow shrink-0 active:scale-95">
+                        調理完了 🍺
+                    </button>
+                `;
+                listEl.appendChild(item);
+            });
+        }
+
+        function quickOrder(text) {
+            document.getElementById('custom-menu-input').value = text;
+        }
+
+        function addOrder() {
+            const input = document.getElementById('custom-menu-input');
+            const reward = document.getElementById('menu-reward').value;
+            const target = document.getElementById('menu-target').value;
+
+            if (!input.value.trim()) {
+                alert('頼みたい用事を自由に入力してください！');
+                return;
+            }
+
+            const now = new Date();
+            const timeStr = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+
+            orders.push({
+                id: Date.now(),
+                text: input.value,
+                reward: reward,
+                target: target,
+                time: timeStr
+            });
+
+            input.value = '';
+            saveAndRender();
+            if(navigator.vibrate) navigator.vibrate(40);
+        }
+
+        function completeOrder(index) {
+            orders.splice(index, 1);
+            completedCount++;
+            saveAndRender();
+            if(navigator.vibrate) navigator.vibrate(70);
+        }
+
+        // 他のタブやスマホ（同一ローカル環境等）での変更を検知して自動同期
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'izakaya_orders' || e.key === 'izakaya_completed') {
+                orders = JSON.parse(localStorage.getItem('izakaya_orders')) || [];
+                completedCount = parseInt(localStorage.getItem('izakaya_completed')) || 0;
+                render();
+            }
+        });
+
+        render();
+    </script>
+</body>
+</html>
