@@ -79,7 +79,7 @@
 
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/13.0.0/firebase-app.js';
-    import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/13.0.0/firebase-auth.js';
+    import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/13.0.0/firebase-auth.js';
     import { getFirestore, doc, onSnapshot, runTransaction, serverTimestamp } from 'https://www.gstatic.com/firebasejs/13.0.0/firebase-firestore.js';
 
     const firebaseConfig = {
@@ -124,7 +124,8 @@
       } else if (error?.code === 'auth/unauthorized-domain') {
         setStatus('このサイトのドメインがFirebaseの承認済みドメインに登録されていません。');
       } else {
-        setStatus(`${context}：${error?.message || 'エラーが発生しました。'}`);
+        const code = error?.code ? `（${error.code}）` : '';
+        setStatus(`${context}${code}：${error?.message || 'エラーが発生しました。'}`);
       }
     }
 
@@ -234,16 +235,45 @@
     }
 
     loginButton.addEventListener('click', async () => {
+      loginButton.disabled = true;
       try {
-        setStatus('Googleログイン画面へ移動します…');
-        await signInWithRedirect(auth, new GoogleAuthProvider());
-      } catch (error) { showError(error, 'ログインに失敗しました'); }
+        setStatus('Googleログインを開始しています…');
+        const provider = new GoogleAuthProvider();
+        // iPhone Safariでは、リダイレクトから戻った後に認証状態が
+        // 引き継がれないことがあるため、まずポップアップ方式を試します。
+        await signInWithPopup(auth, provider);
+        setStatus('Googleログインに成功しました。共有データに接続しています…');
+      } catch (error) {
+        console.error('Googleログイン（ポップアップ）', error);
+        // ポップアップが環境によって使えない場合のみ、リダイレクト方式へ切り替えます。
+        if (['auth/popup-blocked', 'auth/popup-closed-by-user', 'auth/cancelled-popup-request'].includes(error?.code)) {
+          try {
+            setStatus('ポップアップが使えないため、Googleログイン画面へ移動します…');
+            await signInWithRedirect(auth, new GoogleAuthProvider());
+            return;
+          } catch (redirectError) {
+            showError(redirectError, 'Googleログイン（リダイレクト）に失敗しました');
+          }
+        } else {
+          showError(error, 'Googleログインに失敗しました');
+        }
+      } finally {
+        loginButton.disabled = false;
+      }
     });
     logoutButton.addEventListener('click', async () => {
       try { await signOut(auth); } catch (error) { showError(error, 'ログアウトに失敗しました'); }
     });
 
-    getRedirectResult(auth).catch(error => showError(error, 'Googleログインに失敗しました'));
+    getRedirectResult(auth)
+      .then(result => {
+        if (result?.user) {
+          setStatus(`Googleログイン成功：${result.user.email || 'アカウントを確認しました'}。共有データに接続しています…`);
+        }
+      })
+      .catch(error => showError(error, 'Googleログイン結果の受け取りに失敗しました'));
+
+    setStatus('Firebaseに接続中です。ログイン状態を確認しています…');
     onAuthStateChanged(auth, user => {
       currentUser = user;
       if (user) {
