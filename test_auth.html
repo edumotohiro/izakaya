@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Firebaseログイン診断</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      background: #f5f5f5;
+      color: #222;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    section {
+      background: white;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 8px #0001;
+    }
+    button {
+      display: block;
+      width: 100%;
+      padding: 13px;
+      margin: 10px 0;
+      border: 0;
+      border-radius: 8px;
+      background: #2457a7;
+      color: white;
+      font-size: 15px;
+      cursor: pointer;
+    }
+    button:disabled {
+      opacity: .5;
+    }
+    #logout {
+      background: #555;
+    }
+    #status {
+      overflow-wrap: anywhere;
+      white-space: pre-wrap;
+      background: #eee;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 13px;
+    }
+    .note {
+      color: #555;
+      font-size: 13px;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Googleログイン診断</h1>
+
+  <section>
+    <h2>1. 接続情報</h2>
+    <p id="environment"></p>
+    <p id="status" role="status" aria-live="polite">
+      Firebaseに接続しています…
+    </p>
+  </section>
+
+  <section>
+    <h2>2. ログインテスト</h2>
+
+    <button id="popup" disabled>
+      ポップアップ方式でログイン
+    </button>
+
+    <button id="redirect" disabled>
+      リダイレクト方式でログイン
+    </button>
+
+    <button id="logout" disabled>
+      ログアウト
+    </button>
+
+    <p class="note">
+      2つの方式を別々に試せます。
+      最初はポップアップ方式を試してください。
+    </p>
+  </section>
+
+  <section>
+    <h2>3. 診断結果</h2>
+    <pre id="details">診断結果はここに表示されます。</pre>
+  </section>
+
+  <script type="module">
+    import {
+      initializeApp
+    } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-app.js";
+
+    import {
+      getAuth,
+      GoogleAuthProvider,
+      signInWithPopup,
+      signInWithRedirect,
+      getRedirectResult,
+      onAuthStateChanged,
+      signOut
+    } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyD1Hu2PC_A0hExbyemVnp3iiKvf1bLtuCo",
+      authDomain: "izakayaapp.firebaseapp.com",
+      projectId: "izakayaapp",
+      storageBucket: "izakayaapp.firebasestorage.app",
+      messagingSenderId: "594968829381",
+      appId: "1:594968829381:web:7bf3e3161e67ca790f3fac",
+      measurementId: "G-TTPNL393CQ"
+    };
+
+    const statusEl = document.getElementById("status");
+    const detailsEl = document.getElementById("details");
+    const popupButton = document.getElementById("popup");
+    const redirectButton = document.getElementById("redirect");
+    const logoutButton = document.getElementById("logout");
+
+    document.getElementById("environment").textContent =
+      "現在のURL: " + location.href +
+      "\nブラウザ: " + navigator.userAgent;
+
+    function status(message) {
+      statusEl.textContent = message;
+    }
+
+    function showError(context, error) {
+      console.error(context, error);
+
+      const code = error?.code || "コード不明";
+      const message = error?.message || String(error);
+
+      detailsEl.textContent =
+        "処理: " + context +
+        "\nエラーコード: " + code +
+        "\nエラーメッセージ: " + message;
+
+      status("エラーが発生しました。下の診断結果を確認してください。");
+    }
+
+    let auth;
+
+    try {
+      const app = initializeApp(firebaseConfig);
+      auth = getAuth(app);
+
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({
+        prompt: "select_account"
+      });
+
+      popupButton.disabled = false;
+      redirectButton.disabled = false;
+
+      popupButton.addEventListener("click", async () => {
+        popupButton.disabled = true;
+        status("ポップアップ方式でログインしています…");
+        detailsEl.textContent = "認証処理を実行中です。";
+
+        try {
+          const result = await signInWithPopup(auth, provider);
+
+          status("ポップアップ方式のログインに成功しました。");
+          detailsEl.textContent =
+            "結果: 成功" +
+            "\nユーザーID: " + result.user.uid +
+            "\nメールアドレス: " +
+              (result.user.email || "取得できませんでした");
+        } catch (error) {
+          showError("ポップアップ方式", error);
+        } finally {
+          popupButton.disabled = false;
+        }
+      });
+
+      redirectButton.addEventListener("click", async () => {
+        status("リダイレクト方式でログイン画面へ移動します…");
+
+        try {
+          await signInWithRedirect(auth, provider);
+        } catch (error) {
+          showError("リダイレクト方式", error);
+        }
+      });
+
+      logoutButton.addEventListener("click", async () => {
+        logoutButton.disabled = true;
+        status("ログアウトしています…");
+
+        try {
+          await signOut(auth);
+          status("ログアウトしました。再ログインを試せます。");
+          detailsEl.textContent = "ログアウト成功";
+        } catch (error) {
+          showError("ログアウト", error);
+        } finally {
+          logoutButton.disabled = false;
+        }
+      });
+
+      onAuthStateChanged(auth, user => {
+        if (user) {
+          status("ログイン中です。");
+          logoutButton.disabled = false;
+
+          detailsEl.textContent =
+            "認証状態: ログイン済み" +
+            "\nユーザーID: " + user.uid +
+            "\nメールアドレス: " +
+              (user.email || "取得できませんでした");
+        } else {
+          logoutButton.disabled = true;
+          status("未ログインです。ログイン方式を選んでください。");
+        }
+      });
+
+      getRedirectResult(auth)
+        .then(result => {
+          if (result?.user) {
+            status("リダイレクト方式のログインに成功しました。");
+            detailsEl.textContent =
+              "結果: リダイレクト認証成功" +
+              "\nメールアドレス: " +
+                (result.user.email || "取得できませんでした");
+          }
+        })
+        .catch(error => {
+          showError("リダイレクト結果の取得", error);
+        });
+
+    } catch (error) {
+      showError("Firebase初期化", error);
+      popupButton.disabled = true;
+      redirectButton.disabled = true;
+    }
+  </script>
+</body>
+</html>
