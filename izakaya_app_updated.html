@@ -1,951 +1,2022 @@
 <!DOCTYPE html>
+
 <html lang="ja">
+
 <head>
+
 <meta charset="UTF-8">
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>家庭内居酒屋「大将、あれ頼む！」</title>
+
 <script src="https://cdn.tailwindcss.com"></script>
+
 <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@700&family=Yuji+Boku&display=swap" rel="stylesheet">
+
 <style>
+
   body { background-color:#2b1810; color:#f3e9dc; font-family:'Zen Maru Gothic',sans-serif; }
+
   .store-title { font-family:'Yuji Boku',serif; }
+
   button:disabled { opacity:.55; cursor:not-allowed; }
+
 </style>
+
 </head>
+
 <body class="min-h-screen flex flex-col items-center p-3 sm:p-6">
+
 <header class="w-full max-w-md bg-[#1a0f0a] border-4 border-[#d4af37] rounded-2xl p-4 text-center shadow-2xl mb-4 relative">
+
   <div class="absolute -top-2.5 -left-2 bg-red-800 text-yellow-300 text-[10px] px-2.5 py-1 rounded-br font-bold shadow">本日も営業中</div>
+
   <h1 class="text-2xl font-bold text-[#f59e0b] tracking-widest mt-1 store-title">居酒屋『我が家』</h1>
+
   <p class="text-xs text-stone-400 mt-0.5">〜 自由な注文、大歓迎！ 〜</p>
+
   <div class="mt-3 bg-black/60 rounded-xl p-2.5 text-xs flex justify-around border border-stone-700">
+
     <span>担当大将：<strong class="text-amber-400" id="daisho-display">パパ</strong></span>
+
     <span>本日のお仕事完了：<strong class="text-green-400" id="order-count">0</strong> 品</span>
+
     <span>所持：<strong class="text-amber-300" id="points-total">0</strong> pt</span>
+
   </div>
+
   <div class="text-[10px] text-stone-400 mt-1">累計獲得：<strong id="points-earned-total" class="text-amber-300">0</strong> pt</div>
+
   <div class="mt-3 text-left">
+
     <div id="connection-status" class="text-xs text-stone-300 mb-2" role="status" aria-live="polite">Firebaseに接続する準備中…</div>
+
     <div class="flex gap-2">
+
       <button id="login-button" type="button" class="flex-1 bg-amber-600 hover:bg-amber-500 text-stone-950 font-bold py-2 rounded-lg text-xs">Googleでログイン</button>
+
       <button id="logout-button" type="button" class="hidden bg-stone-700 hover:bg-stone-600 text-white font-bold px-3 py-2 rounded-lg text-xs">ログアウト</button>
+
     </div>
+
       <div id="account-display" class="text-[10px] text-stone-400 mt-1 break-all"></div>
+
       <div class="mt-3 flex items-center justify-between gap-2 rounded-lg border border-amber-700/60 bg-black/30 px-3 py-2">
+
         <span class="text-xs text-stone-300">操作中：<strong id="operator-display" class="text-amber-300">パパ</strong></span>
+
         <label class="text-xs text-stone-300">切替
+
           <select id="operator-select" class="ml-1 rounded bg-[#2b1810] border border-[#6d4c41] px-2 py-1 text-white">
+
             <option value="パパ">パパ</option><option value="ママ">ママ</option>
+
           </select>
+
         </label>
+
       </div>
+
       <p class="text-[10px] text-stone-500 mt-1 text-left">※ 操作する人を選択してください（本人確認ではなく記録用です）。</p>
+
     </div>
+
   </header>
 
+
+
 <main class="w-full max-w-md space-y-4">
+
   <section class="bg-[#3e2723] border-2 border-[#8d6e63] rounded-2xl p-4 shadow-lg">
+
     <h2 class="text-sm font-bold text-amber-200 border-b border-[#5d4037] pb-2 mb-3">📝 自由にお品書きを書く（注文票）</h2>
+
     <div class="space-y-3">
+
       <div>
+
         <label for="custom-menu-input" class="block text-xs text-stone-300 mb-1">頼みたい用事（自由に入力）</label>
+
         <input type="text" id="custom-menu-input" placeholder="例：お風呂の栓をして！、醤油買ってきて" class="w-full px-3 py-3 rounded-xl bg-[#2b1810] border border-[#6d4c41] text-white focus:outline-none focus:border-amber-500 text-base">
+
       </div>
+
       <div>
+
         <span class="block text-[10px] text-stone-400 mb-1">⚡ ワンタッチクイック注文：</span>
+
         <div id="quick-buttons" class="flex flex-wrap gap-1.5"></div>
+
       </div>
+
       <div class="grid grid-cols-2 gap-2 pt-1">
+
         <div>
+
           <label for="menu-points" class="block text-xs text-stone-300 mb-1">獲得ポイント</label>
+
           <input id="menu-points" type="number" min="0" max="1000" step="1" value="1" class="w-full px-2.5 py-3 rounded-xl bg-[#2b1810] border border-[#6d4c41] text-white text-sm">
+
         </div>
+
         <div>
+
           <label for="menu-target" class="block text-xs text-stone-300 mb-1">指名先</label>
+
           <select id="menu-target" class="w-full px-2.5 py-3 rounded-xl bg-[#2b1810] border border-[#6d4c41] text-white text-xs">
+
             <option value="大将">大将へ</option><option value="女将/相方">女将へ</option><option value="どなたでも！">どなたでも！</option>
+
           </select>
+
         </div>
+
       </div>
+
       <div>
+
         <label for="menu-reward" class="block text-xs text-stone-300 mb-1">手間（重さ）</label>
+
         <select id="menu-reward" class="w-full px-2.5 py-3 rounded-xl bg-[#2b1810] border border-[#6d4c41] text-white text-xs">
+
           <option value="小鉢 (5分)">小鉢 (5分・軽微)</option><option value="定番 (15分)">定番 (15分・普通)</option><option value="特選メイン (30分+)">特選！(30分・大仕事)</option>
+
         </select>
+
       </div>
+
       <button id="add-button" type="button" onclick="addOrder()" disabled class="w-full bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 hover:to-yellow-500 text-stone-950 font-bold py-3 rounded-xl shadow-md transition transform active:scale-95 text-xs tracking-wider">🏮 威勢よく注文を通す！</button>
+
       <p class="text-[10px] text-stone-400">※ ログイン後に注文できます。完了するとポイントが貯まります。</p>
+
     </div>
+
   </section>
+
+
 
   <section class="bg-[#1e1e1e] border-2 border-stone-700 rounded-2xl p-4 shadow-lg">
+
     <h2 class="text-sm font-bold text-yellow-400 border-b border-stone-800 pb-2 mb-3 flex items-center justify-between">
+
       <span>🔥 厨房カウンター（未対応）</span><span id="badge-count" class="bg-red-600 text-white text-xs px-2 py-0.5 rounded-full font-bold">0件</span>
+
     </h2>
+
     <div id="order-list" class="space-y-2.5 max-h-96 overflow-y-auto pr-1"><div class="text-center text-stone-500 text-xs py-8">Googleログインすると注文を読み込みます。</div></div>
+
   </section>
 
+
+
   <section class="bg-[#302019] border border-[#8d6e63] rounded-2xl p-4 shadow-lg">
+
     <div class="flex items-center justify-between gap-2">
+
       <div>
+
         <h2 class="text-sm font-bold text-amber-200">⚙️ 設定</h2>
+
         <p class="text-[10px] text-stone-400 mt-1">「自分で家事を記録」のボタン追加・名前変更・ポイント変更はこちら。</p>
+
       </div>
+
       <button id="toggle-task-settings" type="button" class="bg-stone-700 text-white text-xs px-3 py-2 rounded-lg">設定を開く</button>
+
     </div>
+
     <div id="task-settings" class="hidden mt-3 space-y-3">
+
       <div class="rounded-xl border border-amber-800 bg-black/20 p-3 space-y-2">
+
         <h3 class="text-xs font-bold text-amber-200">✨ 自発ボーナス（全体の基本設定）</h3>
+
         <p class="text-[10px] text-stone-400">依頼されずに自分から家事をしたときのボーナス。家事ごとに個別設定もできます。</p>
+
         <div class="grid grid-cols-2 gap-2">
+
           <div><label for="self-bonus-mode" class="block text-xs text-stone-300 mb-1">ボーナス方式</label><select id="self-bonus-mode" class="w-full px-2 py-2 rounded-lg bg-[#2b1810] border border-[#6d4c41] text-white text-sm"><option value="multiplier">倍率（基本ポイント×倍率）</option><option value="add">加算（基本ポイント＋pt）</option><option value="none">ボーナスなし</option></select></div>
+
           <div><label for="self-bonus-value" class="block text-xs text-stone-300 mb-1">倍率 / 加算ポイント</label><input id="self-bonus-value" type="number" min="0" max="10" step="0.5" value="2" class="w-full px-2 py-2 rounded-lg bg-[#2b1810] border border-[#6d4c41] text-white text-sm"></div>
+
         </div>
+
         <button id="save-self-bonus" type="button" class="bg-amber-600 text-stone-950 font-bold text-xs px-3 py-2 rounded-lg">全体設定を保存</button>
+
         <p class="text-[10px] text-stone-400">初期設定は2倍。例：基本10ptなら自発で20pt。</p>
+
       </div>
+
       <div class="grid grid-cols-2 gap-2">
+
         <div><label for="task-label" class="block text-xs text-stone-300 mb-1">ボタン名</label><input id="task-label" maxlength="24" placeholder="例：お米を炊く" class="w-full px-2 py-2 rounded-lg bg-[#2b1810] border border-[#6d4c41] text-white text-sm"></div>
+
         <div><label for="task-points" class="block text-xs text-stone-300 mb-1">ポイント</label><input id="task-points" type="number" min="0" max="1000" step="1" value="1" class="w-full px-2 py-2 rounded-lg bg-[#2b1810] border border-[#6d4c41] text-white text-sm"></div>
+
       </div>
+
       <div><label for="task-text" class="block text-xs text-stone-300 mb-1">依頼文</label><input id="task-text" maxlength="120" placeholder="例：お米を炊いてください！" class="w-full px-2 py-2 rounded-lg bg-[#2b1810] border border-[#6d4c41] text-white text-sm"></div>
+
       <div class="grid grid-cols-2 gap-2 rounded-lg bg-black/20 p-2">
+
         <div><label for="task-bonus-mode" class="block text-xs text-stone-300 mb-1">この家事の自発ボーナス</label><select id="task-bonus-mode" class="w-full px-2 py-2 rounded-lg bg-[#2b1810] border border-[#6d4c41] text-white text-xs"><option value="global">全体設定を使う</option><option value="none">ボーナスなし</option><option value="multiplier">倍率を個別指定</option><option value="add">加算ptを個別指定</option></select></div>
+
         <div><label for="task-bonus-value" class="block text-xs text-stone-300 mb-1">個別の倍率 / pt</label><input id="task-bonus-value" type="number" min="0" max="10" step="0.5" value="2" class="w-full px-2 py-2 rounded-lg bg-[#2b1810] border border-[#6d4c41] text-white text-xs"></div>
+
       </div>
+
       <div class="flex gap-2">
+
         <button id="save-task-button" type="button" class="flex-1 bg-amber-600 text-stone-950 font-bold text-xs py-2 rounded-lg">新しい仕事を追加</button>
+
         <button id="cancel-task-edit" type="button" class="hidden bg-stone-700 text-white text-xs px-3 py-2 rounded-lg">編集をやめる</button>
+
       </div>
+
       <div id="task-list" class="space-y-2"></div>
+
       <div class="border-t border-[#5d4037] pt-3 mt-3">
+
         <h3 class="text-xs font-bold text-amber-200 mb-2">🎁 ご褒美の追加</h3>
+
         <p class="text-[10px] text-stone-400 mb-2">交換できるご褒美を登録します。登録済みのご褒美は下の一覧から削除できます。</p>
+
         <div class="grid grid-cols-2 gap-2 mb-2">
+
           <div><label for="reward-name" class="block text-xs text-stone-300 mb-1">ご褒美の名前</label><input id="reward-name" maxlength="60" placeholder="例：好きなおつまみ" class="w-full px-2 py-2 rounded-lg bg-[#2b1810] border border-[#6d4c41] text-white text-sm"></div>
+
           <div><label for="reward-cost" class="block text-xs text-stone-300 mb-1">必要ポイント</label><input id="reward-cost" type="number" min="1" max="1000" step="1" value="30" class="w-full px-2 py-2 rounded-lg bg-[#2b1810] border border-[#6d4c41] text-white text-sm"></div>
+
         </div>
+
         <div class="flex gap-2">
+
           <select id="reward-category" class="flex-1 px-2 py-2 rounded-lg bg-[#2b1810] border border-[#6d4c41] text-white text-xs"><option value="食べ物・飲み物">食べ物・飲み物</option><option value="趣味">趣味</option><option value="自由時間">自由時間</option><option value="その他">その他</option></select>
+
           <button id="add-reward-button" type="button" class="bg-amber-600 text-stone-950 font-bold text-xs px-3 py-2 rounded-lg">ご褒美を追加</button>
+
         </div>
+
       </div>
+
     </div>
+
   </section>
+
+
 
   <section class="bg-[#3e2723] border-2 border-amber-700/70 rounded-2xl p-4 shadow-lg">
+
     <h2 class="text-sm font-bold text-amber-200 border-b border-[#5d4037] pb-2 mb-2">✨ 自分で家事を記録</h2>
+
     <p class="text-[10px] text-stone-400 mb-3">依頼を作らず、実際に終えた家事を選ぶだけ。ルーティン家事もここから記録できます。</p>
+
     <div id="spontaneous-task-buttons" class="grid grid-cols-2 gap-2"><p class="text-xs text-stone-500">ログインすると家事ボタンが表示されます。</p></div>
+
   </section>
+
   <section class="bg-[#302019] border border-[#8d6e63] rounded-2xl p-4 shadow-lg">
+
     <h2 class="text-sm font-bold text-amber-200 border-b border-[#5d4037] pb-2 mb-3">🎁 ご褒美と交換</h2>
+
     <p class="text-[10px] text-stone-400 mb-3">ご褒美の交換はこちら。登録・追加は「設定」を開いてください。ポイントは交換時だけ減ります。</p>
+
     <div id="rewards-list" class="space-y-2"></div>
+
     <div class="mt-4 border-t border-[#5d4037] pt-3">
+
       <h3 class="text-xs font-bold text-amber-200 mb-2">最近の交換履歴</h3><div id="redemption-list" class="space-y-2"></div>
+
     </div>
+
   </section>
+
   <section class="bg-[#302019] border border-[#8d6e63] rounded-2xl p-4 shadow-lg">
+
     <div class="flex items-center justify-between gap-2">
+
       <div><h2 class="text-sm font-bold text-amber-200">🪙 ポイント履歴</h2><p class="text-[10px] text-stone-400 mt-1">誤って獲得・交換したポイントは、各記録の「訂正」から取り消せます。</p></div>
+
       <button id="toggle-point-history" type="button" class="bg-stone-700 text-white text-xs px-3 py-2 rounded-lg">履歴を見る</button>
+
     </div>
+
     <div id="point-history-panel" class="hidden mt-3"><div id="point-history-list" class="space-y-2"><p class="text-xs text-stone-500">ログインすると表示されます。</p></div></div>
+
   </section>
+
   <section class="bg-[#302019] border border-[#8d6e63] rounded-2xl p-4 shadow-lg">
+
     <div class="flex items-center justify-between gap-2">
+
       <div>
+
         <h2 class="text-sm font-bold text-amber-200">📜 お仕事の履歴</h2>
+
         <p class="text-[10px] text-stone-400 mt-1">完了・キャンセルした仕事を確認できます。</p>
+
       </div>
+
       <button id="toggle-history" type="button" class="bg-stone-700 text-white text-xs px-3 py-2 rounded-lg">履歴を見る</button>
+
     </div>
+
     <div id="history-panel" class="hidden mt-3">
+
       <div class="text-xs text-amber-200 mb-2">過去の記録（新しい順）</div>
+
       <div id="history-list" class="space-y-2 max-h-96 overflow-y-auto"></div>
+
     </div>
+
   </section>
+
 </main>
 
+
+
 <script type="module">
+
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/13.0.0/firebase-app.js';
+
   import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/13.0.0/firebase-auth.js';
+
   import { getFirestore, doc, onSnapshot, runTransaction, serverTimestamp } from 'https://www.gstatic.com/firebasejs/13.0.0/firebase-firestore.js';
 
+
+
   const firebaseConfig = {
+
     apiKey: 'AIzaSyD1Hu2PC_A0hExbyemVnp3iiKvf1bLtuCo',
+
     authDomain: 'izakayaapp.firebaseapp.com',
+
     projectId: 'izakayaapp',
+
     storageBucket: 'izakayaapp.firebasestorage.app',
+
     messagingSenderId: '594968829381',
+
     appId: '1:594968829381:web:7bf3e3161e67ca790f3fac',
+
     measurementId: 'G-TTPNL393CQ'
+
   };
+
+
 
   const app = initializeApp(firebaseConfig);
+
   const auth = getAuth(app);
+
   const db = getFirestore(app);
+
   const stateRef = doc(db, 'household', 'state');
+
   let currentUser = null;
+
   let orders = [];
+
   let history = [];
+
   let completedCount = 0;
+
   let completedDate = '';
+
   let pointsTotal = 0; // Current spendable balance; retained for compatibility with existing Firestore data.
+
   let pointsEarnedTotal = 0;
+
   let pointHistory = [];
+
   let rewards = [];
+
   let redemptionHistory = [];
+
   let operatorProfile = localStorage.getItem('izakayaOperatorProfile') === 'ママ' ? 'ママ' : 'パパ';
+
   let quickTasks = [];
+
   let selfBonus = { mode: 'multiplier', value: 2 };
+
   let unsubscribeState = null;
+
   let busy = false;
+
   let editingTaskId = null;
 
+
+
   const defaultRewards = [
+
     { id: 'reward-drink', name: '好きな飲み物', category: '食べ物・飲み物', points: 15 },
+
     { id: 'reward-snack', name: '好きなおつまみ', category: '食べ物・飲み物', points: 30 },
+
     { id: 'reward-hobby-time', name: '30分の趣味時間', category: '自由時間', points: 40 },
+
     { id: 'reward-hobby-item', name: '趣味用品などのご褒美', category: '趣味', points: 100 }
+
   ];
+
   const defaultTasks = [
+
     { id: 'rice', label: 'お米を炊く', text: 'お米を炊いてください！', points: 1 },
+
     { id: 'teeth', label: '子どもたちの歯磨き', text: '子どもたちの歯磨きをお願いします！', points: 2 },
+
     { id: 'laundry', label: '洗濯物を干す', text: '洗濯物を干してください！', points: 3 },
+
     { id: 'tea', label: 'お茶をわかす', text: 'お茶をわかしてください！', points: 1 },
+
     { id: 'bath', label: '風呂掃除', text: 'お風呂掃除お願いします！', points: 2 },
+
     { id: 'trash', label: 'ゴミ出し', text: 'ゴミ出しよろしく！', points: 1 },
+
     { id: 'bedtime', label: '寝かしつけ', text: '寝かしつけバトンタッチ！', points: 3 }
+
   ];
+
+
 
   const statusEl = document.getElementById('connection-status');
+
   const loginButton = document.getElementById('login-button');
+
   const logoutButton = document.getElementById('logout-button');
+
   const addButton = document.getElementById('add-button');
+
   const listEl = document.getElementById('order-list');
+
   const badgeEl = document.getElementById('badge-count');
+
   const countEl = document.getElementById('order-count');
+
   const accountEl = document.getElementById('account-display');
+
   const quickButtonsEl = document.getElementById('quick-buttons');
+
   const historyListEl = document.getElementById('history-list');
+
   const taskListEl = document.getElementById('task-list');
+
   const spontaneousButtonsEl = document.getElementById('spontaneous-task-buttons');
+
   const rewardsListEl = document.getElementById('rewards-list');
+
   const redemptionListEl = document.getElementById('redemption-list');
+
   const pointHistoryListEl = document.getElementById('point-history-list');
 
+
+
   function setStatus(message) { statusEl.textContent = message; }
+
   function todayKey() {
+
     const d = new Date();
+
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+
   }
+
   function clockText(date = new Date()) {
+
     return `${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
+
   }
+
   function dateTimeText(value) {
+
     if (!value) return '時刻不明';
+
     const d = new Date(value);
+
     if (Number.isNaN(d.getTime())) return String(value);
+
     return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')} ${clockText(d)}`;
+
   }
+
   function safePoints(value) {
+
     const n = Number(value);
+
     return Number.isFinite(n) ? Math.max(0, Math.min(1000, Math.floor(n))) : 0;
+
   }
+
   function setBusy(value) {
+
     busy = value;
+
     addButton.disabled = !currentUser || busy;
+
     document.querySelectorAll('.order-action-button, #save-task-button').forEach(button => button.disabled = busy || !currentUser);
+
   }
+
   function showError(error, context) {
+
     console.error(context, error);
+
     if (error?.code === 'permission-denied' || error?.code === 'firestore/permission-denied') {
+
       setStatus('データベースのアクセス設定を確認してください（Firestoreのルールが未設定の可能性があります）。');
+
     } else if (error?.code === 'auth/unauthorized-domain') {
+
       setStatus('このサイトのドメインがFirebaseの承認済みドメインに登録されていません。');
+
     } else {
+
       const code = error?.code ? `（${error.code}）` : '';
+
       setStatus(`${context}${code}：${error?.message || 'エラーが発生しました。'}`);
+
     }
+
   }
+
   function normalizeState(data = {}) {
+
     return {
+
       orders: Array.isArray(data.orders) ? data.orders : [],
+
       history: Array.isArray(data.history) ? data.history : [],
+
       completedCount: Number.isFinite(data.completedCount) ? data.completedCount : 0,
+
       completedDate: typeof data.completedDate === 'string' ? data.completedDate : todayKey(),
+
       pointsTotal: Number.isFinite(data.pointsTotal) ? Math.max(0, data.pointsTotal) : 0,
+
       pointsEarnedTotal: Number.isFinite(data.pointsEarnedTotal) ? Math.max(0, data.pointsEarnedTotal) : (Number.isFinite(data.pointsTotal) ? Math.max(0, data.pointsTotal) : 0),
+
       pointHistory: Array.isArray(data.pointHistory) ? data.pointHistory : [],
+
       rewards: Array.isArray(data.rewards) ? data.rewards : defaultRewards.map(item => ({...item})),
+
       redemptionHistory: Array.isArray(data.redemptionHistory) ? data.redemptionHistory : [],
+
       quickTasks: Array.isArray(data.quickTasks)
+
         ? data.quickTasks
+
         : defaultTasks.map(task => ({...task})),
+
       selfBonus: data.selfBonus && ['multiplier', 'add', 'none'].includes(data.selfBonus.mode)
+
         ? { mode: data.selfBonus.mode, value: Math.max(0, Math.min(10, Number(data.selfBonus.value) || 0)) }
+
         : { mode: 'multiplier', value: 2 }
+
     };
+
   }
+
   function escapeHtml(value) {
+
     return String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+
   }
+
   function renderQuickTasks() {
+
     quickButtonsEl.innerHTML = '';
+
     quickTasks.forEach(task => {
+
       const button = document.createElement('button');
+
       button.type = 'button';
+
       button.className = 'bg-[#2b1810] hover:bg-[#4e342e] border border-[#6d4c41] text-amber-300 text-xs px-3 py-2 rounded-lg';
+
       button.textContent = `${task.label}（${safePoints(task.points)}pt）`;
+
       button.addEventListener('click', () => {
+
         document.getElementById('custom-menu-input').value = task.text;
+
         document.getElementById('menu-points').value = safePoints(task.points);
+
         document.getElementById('custom-menu-input').focus();
+
       });
+
       quickButtonsEl.appendChild(button);
+
     });
+
   }
+
   function syncBonusSettingsUI() {
+
     const mode = document.getElementById('self-bonus-mode');
+
     const value = document.getElementById('self-bonus-value');
+
     if (mode) mode.value = selfBonus.mode;
+
     if (value) value.value = selfBonus.value;
+
   }
+
   function effectiveBonus(task) {
+
     const mode = task && task.bonusMode && task.bonusMode !== 'global' ? task.bonusMode : selfBonus.mode;
+
     const value = task && task.bonusMode && task.bonusMode !== 'global' ? Math.max(0, Math.min(10, Number(task.bonusValue) || 0)) : selfBonus.value;
+
     return { mode: ['multiplier', 'add', 'none'].includes(mode) ? mode : 'multiplier', value };
+
   }
+
   function spontaneousAward(task) {
+
     const base = safePoints(task.points);
+
     const bonus = effectiveBonus(task);
+
     if (bonus.mode === 'none') return { base, bonus: 0, total: base, mode: bonus.mode, value: bonus.value };
+
     if (bonus.mode === 'add') {
+
       const extra = Math.floor(bonus.value);
+
       return { base, bonus: extra, total: Math.min(1000, base + extra), mode: bonus.mode, value: bonus.value };
+
     }
+
     const total = Math.min(1000, Math.floor(base * bonus.value));
+
     return { base, bonus: Math.max(0, total - base), total, mode: bonus.mode, value: bonus.value };
+
   }
+
   function renderTaskSettings() {
+
     taskListEl.innerHTML = '';
+
     if (!quickTasks.length) {
+
       taskListEl.innerHTML = '<p class="text-xs text-stone-400">仕事がまだありません。</p>';
+
       return;
+
     }
+
     quickTasks.forEach(task => {
+
       const row = document.createElement('div');
+
       row.className = 'flex items-center gap-2 bg-black/20 p-2 rounded-lg';
+
       const info = document.createElement('div');
+
       info.className = 'min-w-0 flex-1';
+
       const name = document.createElement('div');
+
       name.className = 'text-xs font-bold text-white break-words';
+
       const bonusLabel = task.bonusMode && task.bonusMode !== 'global' ? `／個別${task.bonusMode === 'none' ? 'なし' : task.bonusMode === 'add' ? `+${Number(task.bonusValue)||0}pt` : `${Number(task.bonusValue)||0}倍`}` : '／全体設定';
+
       name.textContent = `${task.label}（基本${safePoints(task.points)}pt・自発${bonusLabel}）`;
+
       const desc = document.createElement('div');
+
       desc.className = 'text-[10px] text-stone-400 break-words';
+
       desc.textContent = task.text;
+
       info.append(name, desc);
+
       const edit = document.createElement('button');
+
       edit.type = 'button'; edit.className = 'order-action-button bg-stone-700 text-white text-xs px-2 py-2 rounded';
+
       edit.textContent = '編集';
+
       edit.addEventListener('click', () => {
+
         editingTaskId = task.id;
+
         document.getElementById('task-label').value = task.label;
+
         document.getElementById('task-text').value = task.text;
+
         document.getElementById('task-points').value = safePoints(task.points);
+
         document.getElementById('task-bonus-mode').value = task.bonusMode || 'global';
+
         document.getElementById('task-bonus-value').value = task.bonusValue ?? 2;
+
         document.getElementById('save-task-button').textContent = '変更を保存';
+
         document.getElementById('cancel-task-edit').classList.remove('hidden');
+
         document.getElementById('task-label').focus();
+
       });
+
       const del = document.createElement('button');
+
       del.type = 'button'; del.className = 'order-action-button bg-red-900 text-white text-xs px-2 py-2 rounded';
+
       del.textContent = '削除';
+
       del.addEventListener('click', async () => {
+
         if (!confirm(`「${task.label}」をクイック注文から削除しますか？過去の履歴は消えません。`)) return;
+
         await updateSharedState(state => {
+
           state.quickTasks = state.quickTasks.filter(item => item.id !== task.id);
+
           return state;
+
         });
+
         if (editingTaskId === task.id) resetTaskForm();
+
       });
+
       row.append(info, edit, del);
+
       taskListEl.appendChild(row);
+
     });
+
   }
+
   function resetTaskForm() {
+
     editingTaskId = null;
+
     document.getElementById('task-label').value = '';
+
     document.getElementById('task-text').value = '';
+
     document.getElementById('task-points').value = '1';
+
     document.getElementById('task-bonus-mode').value = 'global';
+
     document.getElementById('task-bonus-value').value = '2';
+
     document.getElementById('save-task-button').textContent = '新しい仕事を追加';
+
     document.getElementById('cancel-task-edit').classList.add('hidden');
+
   }
+
   function renderOperator() {
+
     const display = document.getElementById('operator-display');
+
     const select = document.getElementById('operator-select');
+
     if (display) display.textContent = operatorProfile;
+
     if (select) select.value = operatorProfile;
+
   }
+
   function renderSpontaneousTasks() {
+
     spontaneousButtonsEl.innerHTML = '';
+
     if (!quickTasks.length) {
+
       spontaneousButtonsEl.innerHTML = '<p class="text-xs text-stone-400 col-span-2">「いつもの仕事を設定」から家事を登録してください。</p>';
+
       return;
+
     }
+
     quickTasks.forEach(task => {
+
       const button = document.createElement('button');
+
       button.type = 'button';
+
       button.className = 'bg-[#2b1810] hover:bg-[#4e342e] border border-amber-800 text-left px-3 py-3 rounded-xl disabled:opacity-50';
+
       button.disabled = !currentUser || busy;
+
       const title = document.createElement('div');
+
       title.className = 'text-xs font-bold text-white';
+
       title.textContent = task.label;
+
       const points = document.createElement('div');
+
       points.className = 'text-[10px] text-amber-300 mt-1';
+
       const award = spontaneousAward(task);
+
       points.textContent = `＋${award.total} pt（基本${award.base}${award.bonus ? `＋ボーナス${award.bonus}` : ''}）`;
+
       button.append(title, points);
+
       button.addEventListener('click', () => recordSpontaneousTask(task.id));
+
       spontaneousButtonsEl.appendChild(button);
+
     });
+
   }
+
   function renderRewards() {
+
     rewardsListEl.innerHTML = '';
+
     if (!rewards.length) rewardsListEl.innerHTML = '<p class="text-xs text-stone-400">ご褒美がありません。上から追加できます。</p>';
+
     rewards.forEach(reward => {
+
       const row = document.createElement('div');
+
       row.className = 'bg-black/20 border border-stone-700 rounded-lg p-3';
+
       const title = document.createElement('div');
+
       title.className = 'text-xs font-bold text-white';
+
       title.textContent = `${reward.name}（${safePoints(reward.points)} pt）`;
+
       const category = document.createElement('div');
+
       category.className = 'text-[10px] text-stone-400 mt-1';
+
       category.textContent = reward.category || 'その他';
+
       const actions = document.createElement('div');
+
       actions.className = 'flex gap-2 mt-2';
+
       const redeem = document.createElement('button');
+
       redeem.type = 'button';
+
       redeem.className = 'flex-1 bg-amber-700 hover:bg-amber-600 text-white text-xs px-3 py-2 rounded-lg font-bold';
+
       redeem.textContent = pointsTotal >= safePoints(reward.points) ? '交換する' : `あと${safePoints(reward.points) - pointsTotal} pt`;
+
       redeem.disabled = !currentUser || busy || pointsTotal < safePoints(reward.points);
+
       redeem.addEventListener('click', () => redeemReward(reward.id));
+
       const del = document.createElement('button');
+
       del.type = 'button';
+
       del.className = 'bg-stone-700 text-white text-xs px-3 py-2 rounded-lg';
+
       del.textContent = '削除';
+
       del.disabled = !currentUser || busy;
+
       del.addEventListener('click', async () => {
+
         if (!confirm(`ご褒美「${reward.name}」を一覧から削除しますか？過去の交換履歴は残ります。`)) return;
+
         await updateSharedState(state => { state.rewards = state.rewards.filter(item => item.id !== reward.id); return state; });
+
       });
+
       actions.append(redeem, del);
+
       row.append(title, category, actions);
+
       rewardsListEl.appendChild(row);
+
     });
+
     redemptionListEl.innerHTML = '';
+
     if (!redemptionHistory.length) redemptionListEl.innerHTML = '<p class="text-xs text-stone-500">まだ交換履歴はありません。</p>';
+
     [...redemptionHistory].slice(-8).reverse().forEach(item => {
+
       const row = document.createElement('div');
+
       row.className = 'text-[10px] text-stone-300 bg-black/20 rounded p-2';
+
       row.textContent = `${dateTimeText(item.at)}：${item.name}（-${safePoints(item.points)} pt）・${item.by || '操作ユーザー不明'}${item.reversedAt ? ' ／ 訂正済み' : ''}`;
+
       redemptionListEl.appendChild(row);
+
     });
+
     pointHistoryListEl.innerHTML = '';
+
     if (!pointHistory.length) pointHistoryListEl.innerHTML = '<p class="text-xs text-stone-500">まだポイント履歴はありません。</p>';
+
     [...pointHistory].slice(-30).reverse().forEach(item => {
+
       const row = document.createElement('div');
+
       row.className = 'text-[10px] text-stone-300 bg-black/20 rounded p-2';
+
       const sign = item.type === 'spend' ? '-' : (item.type === 'adjustment' ? '訂正 ' : '+');
+
       const label = `${dateTimeText(item.at)}：${item.task || '家事'}（${sign}${safePoints(item.points)} pt）・${item.by || '操作ユーザー不明'}`;
+
       const text = document.createElement('div');
+
       text.textContent = label;
+
       row.appendChild(text);
+
       if (item.reversedAt) {
+
         const reversed = document.createElement('div');
+
         reversed.className = 'text-red-300 mt-1';
+
         reversed.textContent = `訂正済み（${dateTimeText(item.reversedAt)}・${item.reversedBy || '操作ユーザー不明'}）`;
+
         row.appendChild(reversed);
+
       } else if (item.type === 'earn' || item.type === 'spend') {
+
         const undo = document.createElement('button');
+
         undo.type = 'button';
+
         undo.className = 'mt-2 bg-red-900 hover:bg-red-800 text-white text-[10px] px-2 py-1 rounded';
+
         undo.textContent = 'この記録を訂正';
+
         undo.disabled = !currentUser || busy;
+
         undo.addEventListener('click', () => reversePointEntry(item.id));
+
         row.appendChild(undo);
+
       }
+
       pointHistoryListEl.appendChild(row);
+
     });
+
   }
+
   function render() {
+
     badgeEl.textContent = `${orders.length}件`;
+
     countEl.textContent = String(completedDate === todayKey() ? completedCount : 0);
+
     document.getElementById('daisho-display').textContent = operatorProfile;
+
     renderOperator();
+
     const pointsDisplay = document.getElementById('points-total');
+
     if (pointsDisplay) pointsDisplay.textContent = String(pointsTotal);
+
     const earnedDisplay = document.getElementById('points-earned-total');
+
     if (earnedDisplay) earnedDisplay.textContent = String(pointsEarnedTotal);
+
     renderQuickTasks();
+
     renderTaskSettings();
+
     renderSpontaneousTasks();
+
     renderRewards();
 
+
+
     listEl.innerHTML = '';
+
     if (!orders.length) {
+
       listEl.innerHTML = '<div class="text-center text-stone-500 text-xs py-8">現在、注文はありません。平和な店内です。</div>';
+
     } else {
+
       orders.forEach(order => {
+
         const item = document.createElement('div');
+
         item.className = 'bg-[#2a2a2a] border-l-4 border-amber-500 p-3 rounded-xl gap-3 shadow';
+
         const meta = document.createElement('div');
+
         meta.className = 'text-[10px] text-amber-400 font-bold';
+
         meta.textContent = `【宛先: ${order.target || 'どなたでも！'}】 ${order.reward || ''}${order.createdByProfile ? ` ／ 依頼：${order.createdByProfile}` : ''}`;
+
         const text = document.createElement('div');
+
         text.className = 'text-sm font-bold text-white break-words mt-1';
+
         text.textContent = order.text || '';
+
         const details = document.createElement('div');
+
         details.className = 'text-[10px] text-stone-400 mt-1';
+
         details.textContent = `注文時刻: ${order.createdAt ? dateTimeText(order.createdAt) : (order.time || '--:--')} ／ 完了時 ${safePoints(order.points)}ポイント`;
+
         const actions = document.createElement('div');
+
         actions.className = 'flex flex-wrap gap-2 mt-3';
+
         const complete = document.createElement('button');
+
         complete.type = 'button'; complete.className = 'order-action-button bg-green-700 hover:bg-green-600 text-white text-xs px-3 py-2 rounded-lg font-bold';
+
         complete.textContent = '完了してポイント獲得';
+
         complete.disabled = busy || !currentUser;
+
         complete.addEventListener('click', () => completeOrder(order.id));
+
         const cancel = document.createElement('button');
+
         cancel.type = 'button'; cancel.className = 'order-action-button bg-red-900 hover:bg-red-800 text-white text-xs px-3 py-2 rounded-lg';
+
         cancel.textContent = 'キャンセル';
+
         cancel.disabled = busy || !currentUser;
+
         cancel.addEventListener('click', () => cancelOrder(order.id));
+
         const line = document.createElement('button');
+
         line.type = 'button'; line.className = 'bg-[#06C755] hover:opacity-90 text-white text-xs px-3 py-2 rounded-lg font-bold';
+
         line.textContent = 'LINEで伝える';
+
         line.addEventListener('click', () => shareToLine(order));
+
         actions.append(complete, cancel, line);
+
         item.append(meta, text, details, actions);
+
         listEl.appendChild(item);
+
       });
+
     }
+
+
 
     historyListEl.innerHTML = '';
+
     if (!history.length) {
+
       historyListEl.innerHTML = '<div class="text-center text-stone-500 text-xs py-5">まだ履歴はありません。</div>';
+
     } else {
+
       [...history].sort((a,b) => (b.finishedAt || b.createdAt || 0) - (a.finishedAt || a.createdAt || 0)).slice(0,200).forEach(entry => {
+
         const row = document.createElement('div');
+
         row.className = 'bg-black/20 border border-stone-700 rounded-lg p-3';
+
         const title = document.createElement('div');
+
         title.className = 'text-xs font-bold text-white break-words';
+
         title.textContent = entry.text || '名前のない仕事';
+
         const status = document.createElement('div');
+
         status.className = `text-[10px] mt-1 ${entry.status === 'completed' ? 'text-green-400' : 'text-red-300'}`;
+
         status.textContent = entry.status === 'completed'
+
           ? `完了・${safePoints(entry.points)}ポイント獲得`
+
           : 'キャンセル（ポイント加算なし）';
+
         const when = document.createElement('div');
+
         when.className = 'text-[10px] text-stone-400 mt-1';
+
         const creatorText = entry.createdByProfile ? ` ／ 依頼：${entry.createdByProfile}` : '';
+
       const actorText = entry.completedBy ? ` ／ 実行：${entry.completedBy}` : '';
+
         const sourceText = entry.source === 'spontaneous' ? ' ／ 自発・ルーティン' : (entry.source === 'order' ? ' ／ 依頼' : '');
+
         when.textContent = dateTimeText(entry.finishedAt || entry.createdAt) + creatorText + actorText + sourceText;
+
         row.append(title, status, when);
-        if (entry.status === 'completed') {
+
+        if (entry.status === 'completed' && !entry.reversedAt) {
+          const editActions = document.createElement('div');
+          editActions.className = 'flex flex-wrap gap-2 mt-2';
+          const editButton = document.createElement('button');
+          editButton.type = 'button';
+          editButton.className = 'bg-amber-700 hover:bg-amber-600 text-white text-[10px] px-3 py-1.5 rounded';
+          editButton.textContent = '修正';
+          editButton.disabled = !currentUser || busy;
+          editButton.addEventListener('click', () => editHistoryEntry(entry.id));
+          const cancelButton = document.createElement('button');
+          cancelButton.type = 'button';
+          cancelButton.className = 'bg-red-900 hover:bg-red-800 text-white text-[10px] px-3 py-1.5 rounded';
+          cancelButton.textContent = 'この記録を取り消す';
+          cancelButton.disabled = !currentUser || busy;
+          cancelButton.addEventListener('click', () => cancelCompletedHistoryEntry(entry.id));
+          editActions.append(editButton, cancelButton);
+          row.appendChild(editActions);
+        } else if (entry.reversedAt) {
+          const reversed = document.createElement('div');
+          reversed.className = 'text-[10px] text-red-300 mt-2';
+          reversed.textContent = `取消済み（${dateTimeText(entry.reversedAt)}・${entry.reversedBy || '操作ユーザー不明'}）`;
+          row.appendChild(reversed);
+        }
+
+        if (entry.status === 'completed' && !entry.reversedAt) {
+
           const reactions = document.createElement('div');
+
           reactions.className = 'flex flex-wrap gap-1 mt-2';
+
           const existing = Array.isArray(entry.reactions) ? entry.reactions : [];
+
           existing.forEach(reaction => {
+
             const chip = document.createElement('span');
+
             chip.className = 'text-[10px] bg-amber-900/70 border border-amber-700 rounded-full px-2 py-1 text-amber-100';
+
             chip.textContent = `${reaction.label} · ${reaction.by || '不明'}`;
+
             reactions.appendChild(chip);
+
           });
+
           ['見たよ！', 'ありがとう！', '最高！'].forEach(label => {
+
             const button = document.createElement('button');
+
             button.type = 'button';
+
             button.className = 'text-[10px] bg-stone-700 hover:bg-stone-600 rounded-full px-2 py-1 text-white';
+
             button.textContent = label;
+
             button.disabled = !currentUser || busy;
+
             button.addEventListener('click', () => reactToHistory(entry.id, label));
+
             reactions.appendChild(button);
+
           });
+
           row.appendChild(reactions);
+
         }
+
         historyListEl.appendChild(row);
+
       });
+
     }
+
   }
+
   async function ensureTodayCount() {
+
     try {
+
       await runTransaction(db, async transaction => {
+
         const snapshot = await transaction.get(stateRef);
+
         if (!snapshot.exists()) return;
+
         const data = snapshot.data();
+
         if (!data.completedDate) {
+
           transaction.set(stateRef, { ...data, completedDate: todayKey(), updatedAt: serverTimestamp() });
+
         } else if (data.completedDate !== todayKey()) {
+
           transaction.set(stateRef, { ...data, completedCount: 0, completedDate: todayKey(), updatedAt: serverTimestamp() });
+
         }
+
       });
+
     } catch (error) { showError(error, '本日の完了数リセットに失敗しました'); }
+
   }
+
   function listenToSharedState() {
+
     if (unsubscribeState) unsubscribeState();
+
     setStatus('共有データを読み込んでいます…');
+
     unsubscribeState = onSnapshot(stateRef, async snapshot => {
+
       if (!snapshot.exists()) {
+
         try {
+
           await runTransaction(db, async transaction => {
+
             const latest = await transaction.get(stateRef);
+
             if (!latest.exists()) transaction.set(stateRef, {
+
               orders: [], history: [], completedCount: 0, completedDate: todayKey(),
+
               pointsTotal: 0, pointsEarnedTotal: 0, pointHistory: [], rewards: defaultRewards.map(item => ({...item})), redemptionHistory: [], quickTasks: defaultTasks.map(task => ({...task})), selfBonus: { mode: 'multiplier', value: 2 }, updatedAt: serverTimestamp()
+
             });
+
           });
+
         } catch (error) { showError(error, '初期データの作成に失敗しました'); }
+
         return;
+
       }
+
       const data = normalizeState(snapshot.data());
+
       orders = data.orders;
+
       history = data.history;
+
       completedCount = data.completedCount;
+
       completedDate = data.completedDate;
+
       pointsTotal = data.pointsTotal;
+
       pointsEarnedTotal = data.pointsEarnedTotal;
+
       pointHistory = data.pointHistory;
+
       rewards = data.rewards;
+
       redemptionHistory = data.redemptionHistory;
+
       quickTasks = data.quickTasks;
+
       selfBonus = data.selfBonus;
+
       render();
+
       syncBonusSettingsUI();
+
       setStatus('🟢 夫婦で同期中');
+
       setBusy(false);
+
       if (snapshot.data().completedDate && snapshot.data().completedDate !== todayKey()) ensureTodayCount();
+
       else if (!snapshot.data().completedDate) ensureTodayCount();
+
     }, error => showError(error, '注文データの読み込みに失敗しました'));
+
   }
+
   async function updateSharedState(mutator) {
+
     if (!currentUser || busy) return;
+
     setBusy(true);
+
     try {
+
       await runTransaction(db, async transaction => {
+
         const snapshot = await transaction.get(stateRef);
+
         const raw = snapshot.exists() ? snapshot.data() : {};
+
         const state = normalizeState(raw);
+
         if (state.completedDate !== todayKey()) {
+
           state.completedCount = 0;
+
           state.completedDate = todayKey();
+
         }
+
         const next = mutator(state) || state;
+
         transaction.set(stateRef, {
+
           orders: next.orders,
+
           history: next.history,
+
           completedCount: next.completedCount,
+
           completedDate: next.completedDate,
+
           pointsTotal: next.pointsTotal,
+
           pointsEarnedTotal: next.pointsEarnedTotal,
+
           pointHistory: next.pointHistory,
+
           rewards: next.rewards,
+
           redemptionHistory: next.redemptionHistory,
+
           quickTasks: next.quickTasks,
+
           selfBonus: next.selfBonus,
+
           updatedAt: serverTimestamp()
+
         });
+
       });
+
     } catch (error) {
+
       showError(error, '保存できませんでした');
+
       alert('保存できませんでした。Firebaseの設定や通信状況を確認してください。');
+
     } finally {
+
       setBusy(false);
+
     }
+
   }
+
   window.quickOrder = function(text) { document.getElementById('custom-menu-input').value = text; };
+
   window.addOrder = async function() {
+
     const input = document.getElementById('custom-menu-input');
+
     const text = input.value.trim();
+
     if (!text) { alert('頼みたい用事を自由に入力してください！'); return; }
+
     if (!currentUser) { alert('先にGoogleログインしてください。'); return; }
+
     const points = safePoints(document.getElementById('menu-points').value);
+
     const reward = document.getElementById('menu-reward').value;
+
     const target = document.getElementById('menu-target').value;
+
     const now = new Date();
+
     const newOrder = {
+
       id: `${Date.now()}-${Math.random().toString(36).slice(2,8)}`,
+
       text, reward, target, points, time: clockText(now), createdAt: now.getTime(),
+
       createdBy: currentUser.email || '', createdByProfile: operatorProfile
+
     };
+
     await updateSharedState(state => { state.orders.push(newOrder); return state; });
+
     input.value = '';
+
     if (navigator.vibrate) navigator.vibrate(40);
+
   };
+
   async function completeOrder(id) {
+
     if (!currentUser) return;
+
     await updateSharedState(state => {
+
       const index = state.orders.findIndex(order => order.id === id);
+
       if (index === -1) return state; // Prevent double-awarding the same order.
+
       const [order] = state.orders.splice(index, 1);
+
       const now = Date.now();
+
       const awarded = safePoints(order.points);
+
       state.completedCount = state.completedDate === todayKey() ? state.completedCount + 1 : 1;
+
       state.completedDate = todayKey();
+
       state.pointsTotal += awarded;
+
       state.pointsEarnedTotal += awarded;
-      state.pointHistory.push({ id: `ph-${now}-${Math.random().toString(36).slice(2,6)}`, type: 'earn', points: awarded, task: order.text, at: now, by: operatorProfile, source: 'order' });
+
+      const pointEntryId = `ph-${now}-${Math.random().toString(36).slice(2,6)}`;
+      state.pointHistory.push({ id: pointEntryId, type: 'earn', points: awarded, task: order.text, at: now, by: operatorProfile, source: 'order', historyId: order.id });
+
       state.pointHistory = state.pointHistory.slice(-500);
-      state.history.push({ ...order, status: 'completed', finishedAt: now, pointsAwarded: awarded, completedBy: operatorProfile, source: 'order', reactions: Array.isArray(order.reactions) ? order.reactions : [] });
+
+      state.history.push({ ...order, status: 'completed', finishedAt: now, pointsAwarded: awarded, pointEntryId, completedBy: operatorProfile, source: 'order', reactions: Array.isArray(order.reactions) ? order.reactions : [] });
+
       return state;
+
     });
+
     if (navigator.vibrate) navigator.vibrate(70);
+
   }
+
   async function cancelOrder(id) {
+
     if (!currentUser) return;
+
     if (!confirm('この注文をキャンセルしますか？履歴には残りますが、ポイントは加算されません。')) return;
+
     await updateSharedState(state => {
+
       const index = state.orders.findIndex(order => order.id === id);
+
       if (index === -1) return state;
+
       const [order] = state.orders.splice(index, 1);
+
       state.history.push({ ...order, status: 'cancelled', finishedAt: Date.now(), pointsAwarded: 0, cancelledBy: operatorProfile, source: 'order' });
+
       return state;
+
     });
+
   }
+
   async function recordSpontaneousTask(taskId) {
+
     if (!currentUser) { alert('先にGoogleログインしてください。'); return; }
+
     const task = quickTasks.find(item => item.id === taskId);
+
     if (!task) return;
+
     const award = spontaneousAward(task);
+
     const awarded = award.total;
+
     const bonusDescription = award.bonus ? `（基本${award.base}pt＋ボーナス${award.bonus}pt）` : `（基本${award.base}pt）`;
+
     if (!confirm(`「${task.label}」を自分から行った家事として記録しますか？\n獲得ポイント：${awarded} pt ${bonusDescription}`)) return;
+
     const now = Date.now();
+
     await updateSharedState(state => {
+
       state.completedCount = state.completedDate === todayKey() ? state.completedCount + 1 : 1;
+
       state.completedDate = todayKey();
+
       state.pointsTotal += awarded;
+
       state.pointsEarnedTotal += awarded;
+
       const id = `sp-${now}-${Math.random().toString(36).slice(2,8)}`;
-      state.pointHistory.push({ id: `ph-${id}`, type: 'earn', points: awarded, basePoints: award.base, bonusPoints: award.bonus, bonusMode: award.mode, bonusValue: award.value, task: task.label, at: now, by: operatorProfile, source: 'spontaneous' });
+
+      state.pointHistory.push({ id: `ph-${id}`, type: 'earn', points: awarded, basePoints: award.base, bonusPoints: award.bonus, bonusMode: award.mode, bonusValue: award.value, task: task.label, at: now, by: operatorProfile, source: 'spontaneous', historyId: id });
+
       state.pointHistory = state.pointHistory.slice(-500);
-      state.history.push({ id, text: task.label, points: awarded, pointsAwarded: awarded, status: 'completed', createdAt: now, finishedAt: now, completedBy: operatorProfile, createdByProfile: operatorProfile, source: 'spontaneous', reactions: [] });
+
+      state.history.push({ id, text: task.label, points: awarded, pointsAwarded: awarded, pointEntryId: `ph-${id}`, status: 'completed', createdAt: now, finishedAt: now, completedBy: operatorProfile, createdByProfile: operatorProfile, source: 'spontaneous', reactions: [] });
+
       return state;
+
     });
+
     if (navigator.vibrate) navigator.vibrate(70);
+
   }
-  async function reactToHistory(entryId, label) {
-    if (!currentUser) return;
-    await updateSharedState(state => {
-      const entry = state.history.find(item => item.id === entryId);
-      if (!entry || entry.status !== 'completed') return state;
-      const reactions = Array.isArray(entry.reactions) ? entry.reactions : [];
-      const existingIndex = reactions.findIndex(item => item.by === operatorProfile);
-      const reaction = { label, by: operatorProfile, at: Date.now() };
-      if (existingIndex >= 0 && reactions[existingIndex].label === label) reactions.splice(existingIndex, 1);
-      else if (existingIndex >= 0) reactions[existingIndex] = reaction;
-      else reactions.push(reaction);
-      entry.reactions = reactions;
-      return state;
-    });
+
+  function findPointEntryForHistory(state, entry) {
+    if (entry.pointEntryId) {
+      const linked = state.pointHistory.find(item => item.id === entry.pointEntryId);
+      if (linked) return linked;
+    }
+    const candidates = state.pointHistory.filter(item =>
+      item.type === 'earn' && !item.reversedAt &&
+      (item.historyId === entry.id || (!item.historyId && item.source === entry.source && item.task === entry.text && Math.abs(Number(item.at || 0) - Number(entry.finishedAt || entry.createdAt || 0)) < 120000))
+    );
+    return candidates.sort((a, b) => Math.abs(Number(a.at || 0) - Number(entry.finishedAt || entry.createdAt || 0)) - Math.abs(Number(b.at || 0) - Number(entry.finishedAt || entry.createdAt || 0)))[0] || null;
   }
-  async function redeemReward(rewardId) {
+
+  async function editHistoryEntry(entryId) {
     if (!currentUser) { alert('先にGoogleログインしてください。'); return; }
-    const reward = rewards.find(item => item.id === rewardId);
-    if (!reward) return;
-    const cost = safePoints(reward.points);
-    if (pointsTotal < cost) { alert('ポイントが足りません。'); return; }
-    if (!confirm(`「${reward.name}」と${cost} ptを交換しますか？`)) return;
+    const entry = history.find(item => item.id === entryId);
+    if (!entry || entry.status !== 'completed' || entry.reversedAt) return;
+    const newText = prompt('家事の名前を修正できます。', entry.text || '');
+    if (newText === null) return;
+    const trimmedText = newText.trim();
+    if (!trimmedText) { alert('家事の名前を入力してください。'); return; }
+    const newPointsText = prompt('この家事で獲得したポイント数を入力してください（0〜1000）。', String(safePoints(entry.pointsAwarded ?? entry.points)));
+    if (newPointsText === null) return;
+    if (newPointsText.trim() === '' || !Number.isFinite(Number(newPointsText)) || Number(newPointsText) < 0 || Number(newPointsText) > 1000) {
+      alert('ポイントは0〜1000の数値で入力してください。'); return;
+    }
+    const newPoints = Math.floor(Number(newPointsText));
+    const oldPoints = safePoints(entry.pointsAwarded ?? entry.points);
+    if (trimmedText === entry.text && newPoints === oldPoints) { alert('変更点がありません。'); return; }
+    if (!confirm(`「${entry.text}」を修正します。\n家事：${trimmedText}\nポイント：${oldPoints} → ${newPoints} pt\n所持ポイントと累計獲得ポイントも調整します。よろしいですか？`)) return;
     const now = Date.now();
     await updateSharedState(state => {
-      const currentReward = state.rewards.find(item => item.id === rewardId);
-      if (!currentReward) return state;
-      const currentCost = safePoints(currentReward.points);
-      if (state.pointsTotal < currentCost) { alert('ポイントが足りません。'); return state; }
-      state.pointsTotal -= currentCost;
-      const redemptionId = `red-${now}-${Math.random().toString(36).slice(2,6)}`;
-      state.redemptionHistory.push({ id: redemptionId, rewardId, name: currentReward.name, category: currentReward.category, points: currentCost, at: now, by: operatorProfile });
-      state.pointHistory.push({ id: `ph-red-${now}`, type: 'spend', points: currentCost, task: currentReward.name, at: now, by: operatorProfile, source: 'reward', redemptionId });
+      const target = state.history.find(item => item.id === entryId);
+      if (!target || target.status !== 'completed' || target.reversedAt) return state;
+      const oldValue = safePoints(target.pointsAwarded ?? target.points);
+      const delta = newPoints - oldValue;
+      if (delta < 0 && (state.pointsTotal < -delta || state.pointsEarnedTotal < -delta)) {
+        alert('ポイント残高が不足しているため減額できません。先にご褒美交換履歴を確認してください。');
+        return state;
+      }
+      const pointEntry = findPointEntryForHistory(state, target);
+      state.pointsTotal = Math.max(0, state.pointsTotal + delta);
+      state.pointsEarnedTotal = Math.max(0, state.pointsEarnedTotal + delta);
+      target.text = trimmedText;
+      target.points = newPoints;
+      target.pointsAwarded = newPoints;
+      target.editedAt = now;
+      target.editedBy = operatorProfile;
+      if (pointEntry) {
+        pointEntry.points = newPoints;
+        pointEntry.task = trimmedText;
+        pointEntry.editedAt = now;
+        pointEntry.editedBy = operatorProfile;
+        target.pointEntryId = pointEntry.id;
+      } else if (newPoints !== oldValue) {
+        const pointId = `ph-edit-${now}-${Math.random().toString(36).slice(2,6)}`;
+        state.pointHistory.push({ id: pointId, type: 'earn', points: newPoints, task: trimmedText, at: target.finishedAt || target.createdAt || now, by: target.completedBy || operatorProfile, source: target.source || 'history-edit', historyId: target.id, editedAt: now, editedBy: operatorProfile });
+        target.pointEntryId = pointId;
+      }
+      state.pointHistory.push({ id: `ph-adjust-${now}-${Math.random().toString(36).slice(2,6)}`, type: 'adjustment', points: Math.abs(delta), task: `履歴修正：${trimmedText}（${oldValue}→${newPoints}pt）`, at: now, by: operatorProfile, source: 'history-edit', historyId: target.id });
       state.pointHistory = state.pointHistory.slice(-500);
-      state.redemptionHistory = state.redemptionHistory.slice(-200);
       return state;
     });
   }
-  async function reversePointEntry(entryId) {
+
+  async function cancelCompletedHistoryEntry(entryId) {
     if (!currentUser) { alert('先にGoogleログインしてください。'); return; }
+    const entry = history.find(item => item.id === entryId);
+    if (!entry || entry.status !== 'completed' || entry.reversedAt) return;
+    const points = safePoints(entry.pointsAwarded ?? entry.points);
+    if (!confirm(`「${entry.text || '家事'}」の完了記録を取り消します。\n${points} ptを所持ポイント・累計獲得ポイントから差し引きます。\n履歴は削除せず、取消済みとして残します。よろしいですか？`)) return;
+    const now = Date.now();
+    await updateSharedState(state => {
+      const target = state.history.find(item => item.id === entryId);
+      if (!target || target.status !== 'completed' || target.reversedAt) return state;
+      const amount = safePoints(target.pointsAwarded ?? target.points);
+      if (state.pointsTotal < amount || state.pointsEarnedTotal < amount) {
+        alert('所持ポイントが不足しているため、この記録を取り消せません。先にご褒美交換履歴やポイント履歴を確認してください。');
+        return state;
+      }
+      const pointEntry = findPointEntryForHistory(state, target);
+      state.pointsTotal -= amount;
+      state.pointsEarnedTotal -= amount;
+      target.reversedAt = now;
+      target.reversedBy = operatorProfile;
+      target.status = 'cancelled';
+      target.cancellationNote = '完了記録の取り消し';
+      if (pointEntry && !pointEntry.reversedAt) {
+        pointEntry.reversedAt = now;
+        pointEntry.reversedBy = operatorProfile;
+      }
+      state.pointHistory.push({ id: `ph-cancel-${now}-${Math.random().toString(36).slice(2,6)}`, type: 'adjustment', points: amount, task: `取消：${target.text || '家事'}`, at: now, by: operatorProfile, source: 'history-cancel', historyId: target.id, reverses: pointEntry?.id || null });
+      state.pointHistory = state.pointHistory.slice(-500);
+      return state;
+    });
+  }
+
+  async function reactToHistory(entryId, label) {
+
+    if (!currentUser) return;
+
+    await updateSharedState(state => {
+
+      const entry = state.history.find(item => item.id === entryId);
+
+      if (!entry || entry.status !== 'completed') return state;
+
+      const reactions = Array.isArray(entry.reactions) ? entry.reactions : [];
+
+      const existingIndex = reactions.findIndex(item => item.by === operatorProfile);
+
+      const reaction = { label, by: operatorProfile, at: Date.now() };
+
+      if (existingIndex >= 0 && reactions[existingIndex].label === label) reactions.splice(existingIndex, 1);
+
+      else if (existingIndex >= 0) reactions[existingIndex] = reaction;
+
+      else reactions.push(reaction);
+
+      entry.reactions = reactions;
+
+      return state;
+
+    });
+
+  }
+
+  async function redeemReward(rewardId) {
+
+    if (!currentUser) { alert('先にGoogleログインしてください。'); return; }
+
+    const reward = rewards.find(item => item.id === rewardId);
+
+    if (!reward) return;
+
+    const cost = safePoints(reward.points);
+
+    if (pointsTotal < cost) { alert('ポイントが足りません。'); return; }
+
+    if (!confirm(`「${reward.name}」と${cost} ptを交換しますか？`)) return;
+
+    const now = Date.now();
+
+    await updateSharedState(state => {
+
+      const currentReward = state.rewards.find(item => item.id === rewardId);
+
+      if (!currentReward) return state;
+
+      const currentCost = safePoints(currentReward.points);
+
+      if (state.pointsTotal < currentCost) { alert('ポイントが足りません。'); return state; }
+
+      state.pointsTotal -= currentCost;
+
+      const redemptionId = `red-${now}-${Math.random().toString(36).slice(2,6)}`;
+
+      state.redemptionHistory.push({ id: redemptionId, rewardId, name: currentReward.name, category: currentReward.category, points: currentCost, at: now, by: operatorProfile });
+
+      state.pointHistory.push({ id: `ph-red-${now}`, type: 'spend', points: currentCost, task: currentReward.name, at: now, by: operatorProfile, source: 'reward', redemptionId });
+
+      state.pointHistory = state.pointHistory.slice(-500);
+
+      state.redemptionHistory = state.redemptionHistory.slice(-200);
+
+      return state;
+
+    });
+
+  }
+
+  async function reversePointEntry(entryId) {
+
+    if (!currentUser) { alert('先にGoogleログインしてください。'); return; }
+
     const target = pointHistory.find(item => item.id === entryId);
+
     if (!target || target.reversedAt || !['earn', 'spend'].includes(target.type)) return;
+
     const actionText = target.type === 'earn'
+
       ? `「${target.task || '家事'}」で獲得した ${safePoints(target.points)} ptを取り消します。累計獲得ポイントも減ります。`
+
       : `「${target.task || 'ご褒美'}」との交換 ${safePoints(target.points)} ptを取り消し、所持ポイントに戻します。`;
+
     if (!confirm(`${actionText}
 
+
+
 訂正記録は履歴に残ります。実行しますか？`)) return;
+
     const now = Date.now();
+
     await updateSharedState(state => {
+
       const entry = state.pointHistory.find(item => item.id === entryId);
+
       if (!entry || entry.reversedAt || !['earn', 'spend'].includes(entry.type)) return state;
+
       const points = safePoints(entry.points);
+
       if (entry.type === 'earn') {
+
         if (state.pointsTotal < points || state.pointsEarnedTotal < points) {
+
           alert('このポイントはすでに交換などで使われているため、残高だけでは取り消せません。先に交換履歴を確認してください。');
+
           return state;
+
         }
+
         state.pointsTotal -= points;
+
         state.pointsEarnedTotal -= points;
+
       } else {
+
         state.pointsTotal += points;
+
       }
+
       entry.reversedAt = now;
+
       entry.reversedBy = operatorProfile;
+
       state.pointHistory.push({
+
         id: `ph-reversal-${now}-${Math.random().toString(36).slice(2,6)}`,
+
         type: 'adjustment', points, task: `訂正：${entry.task || 'ポイント記録'}`,
+
         at: now, by: operatorProfile, source: 'correction', reverses: entry.id
+
       });
+
       state.pointHistory = state.pointHistory.slice(-500);
+
       if (entry.type === 'spend') {
+
         const redemption = state.redemptionHistory.find(item => item.id && item.id === entry.redemptionId);
+
         if (redemption) { redemption.reversedAt = now; redemption.reversedBy = operatorProfile; }
+
       }
+
       return state;
+
     });
+
   }
+
+
 
   function shareToLine(order) {
+
     const message = `🍶 大将、注文が入りました！\n📝 ${order.text}\n⭐ 完了すると ${safePoints(order.points)} ポイント！\nアプリを確認してね。`;
+
     const url = `https://line.me/R/msg/text/?${encodeURIComponent(message)}`;
-    window.open(url, '_blank', 'noopener,noreferrer');
+
+    window.open(url, '\_blank', 'noopener,noreferrer');
+
   }
+
+
 
   document.getElementById('toggle-point-history').addEventListener('click', () => {
+
     const panel = document.getElementById('point-history-panel');
+
     const opening = panel.classList.contains('hidden');
+
     panel.classList.toggle('hidden', !opening);
+
     document.getElementById('toggle-point-history').textContent = opening ? '履歴を閉じる' : '履歴を見る';
+
   });
+
   document.getElementById('toggle-history').addEventListener('click', () => {
+
     const panel = document.getElementById('history-panel');
+
     const opening = panel.classList.contains('hidden');
+
     panel.classList.toggle('hidden', !opening);
+
     document.getElementById('toggle-history').textContent = opening ? '履歴を閉じる' : '履歴を見る';
+
   });
+
   document.getElementById('toggle-task-settings').addEventListener('click', () => {
+
     const panel = document.getElementById('task-settings');
+
     const opening = panel.classList.contains('hidden');
+
     panel.classList.toggle('hidden', !opening);
+
     document.getElementById('toggle-task-settings').textContent = opening ? '設定を閉じる' : '設定を開く';
+
   });
+
   document.getElementById('save-task-button').addEventListener('click', async () => {
+
     const label = document.getElementById('task-label').value.trim();
+
     const text = document.getElementById('task-text').value.trim();
+
     const points = safePoints(document.getElementById('task-points').value);
+
     const bonusMode = document.getElementById('task-bonus-mode').value;
+
     const bonusValue = Math.max(0, Math.min(10, Number(document.getElementById('task-bonus-value').value) || 0));
+
     if (!label || !text) { alert('ボタン名と依頼文を入力してください。'); return; }
+
     if (!currentUser) { alert('先にGoogleログインしてください。'); return; }
+
     await updateSharedState(state => {
+
       if (editingTaskId) {
+
         state.quickTasks = state.quickTasks.map(task => task.id === editingTaskId ? { ...task, label, text, points, bonusMode, bonusValue } : task);
+
       } else {
+
         state.quickTasks.push({ id: `task-${Date.now()}-${Math.random().toString(36).slice(2,6)}`, label, text, points, bonusMode, bonusValue });
+
       }
+
       return state;
+
     });
+
     resetTaskForm();
+
   });
+
   document.getElementById('save-self-bonus').addEventListener('click', async () => {
+
     if (!currentUser) { alert('先にGoogleログインしてください。'); return; }
+
     const mode = document.getElementById('self-bonus-mode').value;
+
     const value = Math.max(0, Math.min(10, Number(document.getElementById('self-bonus-value').value) || 0));
+
     await updateSharedState(state => { state.selfBonus = { mode, value }; return state; });
+
     alert('自発ボーナスの全体設定を保存しました。家事ごとの個別設定がある場合は、そちらが優先されます。');
+
   });
+
   document.getElementById('cancel-task-edit').addEventListener('click', resetTaskForm);
 
+
+
   document.getElementById('operator-select').addEventListener('change', event => {
+
     operatorProfile = event.target.value === 'ママ' ? 'ママ' : 'パパ';
+
     localStorage.setItem('izakayaOperatorProfile', operatorProfile);
+
     renderOperator();
+
     render();
+
   });
+
   document.getElementById('add-reward-button').addEventListener('click', async () => {
+
     const name = document.getElementById('reward-name').value.trim();
+
     const points = Number(document.getElementById('reward-cost').value);
+
     const category = document.getElementById('reward-category').value;
+
     if (!name) { alert('ご褒美の名前を入力してください。'); return; }
+
     if (!Number.isFinite(points) || points < 1 || points > 1000) { alert('必要ポイントは1〜1000の範囲で入力してください。'); return; }
+
     if (!currentUser) { alert('先にGoogleログインしてください。'); return; }
+
     await updateSharedState(state => {
+
       state.rewards.push({ id: `reward-${Date.now()}-${Math.random().toString(36).slice(2,6)}`, name, category, points: Math.floor(points) });
+
       return state;
+
     });
+
     document.getElementById('reward-name').value = '';
+
   });
+
   loginButton.addEventListener('click', async () => {
+
     loginButton.disabled = true;
+
     try {
+
       setStatus('Googleログインを開始しています…');
+
       const provider = new GoogleAuthProvider();
+
       await signInWithPopup(auth, provider);
+
       setStatus('Googleログインに成功しました。共有データに接続しています…');
+
     } catch (error) {
+
       console.error('Googleログイン（ポップアップ）', error);
+
       if (['auth/popup-blocked', 'auth/popup-closed-by-user', 'auth/cancelled-popup-request'].includes(error?.code)) {
+
         try {
+
           setStatus('ポップアップが使えないため、Googleログイン画面へ移動します…');
+
           await signInWithRedirect(auth, new GoogleAuthProvider());
+
           return;
+
         } catch (redirectError) { showError(redirectError, 'Googleログイン（リダイレクト）に失敗しました'); }
+
       } else { showError(error, 'Googleログインに失敗しました'); }
+
     } finally { loginButton.disabled = false; }
+
   });
+
   logoutButton.addEventListener('click', async () => {
+
     try { await signOut(auth); } catch (error) { showError(error, 'ログアウトに失敗しました'); }
+
   });
+
   getRedirectResult(auth).then(result => {
+
     if (result?.user) setStatus(`Googleログイン成功：${result.user.email || 'アカウントを確認しました'}。共有データに接続しています…`);
+
   }).catch(error => showError(error, 'Googleログイン結果の受け取りに失敗しました'));
 
+
+
   // Midnight refreshes the visible daily count even if the page remains open.
+
   function scheduleMidnightRefresh() {
+
     const now = new Date();
+
     const next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 1);
+
     setTimeout(() => {
+
       render();
+
       if (currentUser) ensureTodayCount();
+
       scheduleMidnightRefresh();
+
     }, Math.max(1000, next.getTime() - now.getTime()));
+
   }
+
   scheduleMidnightRefresh();
 
+
+
   renderOperator();
+
   setStatus('Firebaseに接続中です。ログイン状態を確認しています…');
+
   onAuthStateChanged(auth, user => {
+
     currentUser = user;
+
     if (user) {
+
       loginButton.classList.add('hidden');
+
       logoutButton.classList.remove('hidden');
+
       accountEl.textContent = `ログイン中：${user.email || 'Googleアカウント'}`;
+
       setStatus('ログインしました。共有データに接続しています…');
+
       addButton.disabled = false;
+
       listenToSharedState();
+
     } else {
+
       if (unsubscribeState) { unsubscribeState(); unsubscribeState = null; }
+
       orders = []; history = []; completedCount = 0; completedDate = ''; pointsTotal = 0; pointsEarnedTotal = 0; pointHistory = []; rewards = defaultRewards.map(item => ({...item})); redemptionHistory = []; quickTasks = defaultTasks.map(task => ({...task}));
+
       render();
+
       loginButton.classList.remove('hidden');
+
       logoutButton.classList.add('hidden');
+
       accountEl.textContent = '';
+
       addButton.disabled = true;
+
       setStatus('ログインすると、夫婦で注文を共有できます。');
+
       listEl.innerHTML = '<div class="text-center text-stone-500 text-xs py-8">Googleログインすると注文を読み込みます。</div>';
+
     }
+
   });
+
 </script>
+
 </body>
+
 </html>
