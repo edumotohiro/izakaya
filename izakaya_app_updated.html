@@ -93,11 +93,25 @@
       <button id="toggle-task-settings" type="button" class="bg-stone-700 text-white text-xs px-3 py-2 rounded-lg">設定を開く</button>
     </div>
     <div id="task-settings" class="hidden mt-3 space-y-3">
+      <div class="rounded-xl border border-amber-800 bg-black/20 p-3 space-y-2">
+        <h3 class="text-xs font-bold text-amber-200">✨ 自発ボーナス（全体の基本設定）</h3>
+        <p class="text-[10px] text-stone-400">依頼されずに自分から家事をしたときのボーナス。家事ごとに個別設定もできます。</p>
+        <div class="grid grid-cols-2 gap-2">
+          <div><label for="self-bonus-mode" class="block text-xs text-stone-300 mb-1">ボーナス方式</label><select id="self-bonus-mode" class="w-full px-2 py-2 rounded-lg bg-[#2b1810] border border-[#6d4c41] text-white text-sm"><option value="multiplier">倍率（基本ポイント×倍率）</option><option value="add">加算（基本ポイント＋pt）</option><option value="none">ボーナスなし</option></select></div>
+          <div><label for="self-bonus-value" class="block text-xs text-stone-300 mb-1">倍率 / 加算ポイント</label><input id="self-bonus-value" type="number" min="0" max="10" step="0.5" value="2" class="w-full px-2 py-2 rounded-lg bg-[#2b1810] border border-[#6d4c41] text-white text-sm"></div>
+        </div>
+        <button id="save-self-bonus" type="button" class="bg-amber-600 text-stone-950 font-bold text-xs px-3 py-2 rounded-lg">全体設定を保存</button>
+        <p class="text-[10px] text-stone-400">初期設定は2倍。例：基本10ptなら自発で20pt。</p>
+      </div>
       <div class="grid grid-cols-2 gap-2">
         <div><label for="task-label" class="block text-xs text-stone-300 mb-1">ボタン名</label><input id="task-label" maxlength="24" placeholder="例：お米を炊く" class="w-full px-2 py-2 rounded-lg bg-[#2b1810] border border-[#6d4c41] text-white text-sm"></div>
         <div><label for="task-points" class="block text-xs text-stone-300 mb-1">ポイント</label><input id="task-points" type="number" min="0" max="1000" step="1" value="1" class="w-full px-2 py-2 rounded-lg bg-[#2b1810] border border-[#6d4c41] text-white text-sm"></div>
       </div>
       <div><label for="task-text" class="block text-xs text-stone-300 mb-1">依頼文</label><input id="task-text" maxlength="120" placeholder="例：お米を炊いてください！" class="w-full px-2 py-2 rounded-lg bg-[#2b1810] border border-[#6d4c41] text-white text-sm"></div>
+      <div class="grid grid-cols-2 gap-2 rounded-lg bg-black/20 p-2">
+        <div><label for="task-bonus-mode" class="block text-xs text-stone-300 mb-1">この家事の自発ボーナス</label><select id="task-bonus-mode" class="w-full px-2 py-2 rounded-lg bg-[#2b1810] border border-[#6d4c41] text-white text-xs"><option value="global">全体設定を使う</option><option value="none">ボーナスなし</option><option value="multiplier">倍率を個別指定</option><option value="add">加算ptを個別指定</option></select></div>
+        <div><label for="task-bonus-value" class="block text-xs text-stone-300 mb-1">個別の倍率 / pt</label><input id="task-bonus-value" type="number" min="0" max="10" step="0.5" value="2" class="w-full px-2 py-2 rounded-lg bg-[#2b1810] border border-[#6d4c41] text-white text-xs"></div>
+      </div>
       <div class="flex gap-2">
         <button id="save-task-button" type="button" class="flex-1 bg-amber-600 text-stone-950 font-bold text-xs py-2 rounded-lg">新しい仕事を追加</button>
         <button id="cancel-task-edit" type="button" class="hidden bg-stone-700 text-white text-xs px-3 py-2 rounded-lg">編集をやめる</button>
@@ -184,6 +198,7 @@
   let redemptionHistory = [];
   let operatorProfile = localStorage.getItem('izakayaOperatorProfile') === 'ママ' ? 'ママ' : 'パパ';
   let quickTasks = [];
+  let selfBonus = { mode: 'multiplier', value: 2 };
   let unsubscribeState = null;
   let busy = false;
   let editingTaskId = null;
@@ -267,7 +282,10 @@
       redemptionHistory: Array.isArray(data.redemptionHistory) ? data.redemptionHistory : [],
       quickTasks: Array.isArray(data.quickTasks)
         ? data.quickTasks
-        : defaultTasks.map(task => ({...task}))
+        : defaultTasks.map(task => ({...task})),
+      selfBonus: data.selfBonus && ['multiplier', 'add', 'none'].includes(data.selfBonus.mode)
+        ? { mode: data.selfBonus.mode, value: Math.max(0, Math.min(10, Number(data.selfBonus.value) || 0)) }
+        : { mode: 'multiplier', value: 2 }
     };
   }
   function escapeHtml(value) {
@@ -288,6 +306,28 @@
       quickButtonsEl.appendChild(button);
     });
   }
+  function syncBonusSettingsUI() {
+    const mode = document.getElementById('self-bonus-mode');
+    const value = document.getElementById('self-bonus-value');
+    if (mode) mode.value = selfBonus.mode;
+    if (value) value.value = selfBonus.value;
+  }
+  function effectiveBonus(task) {
+    const mode = task && task.bonusMode && task.bonusMode !== 'global' ? task.bonusMode : selfBonus.mode;
+    const value = task && task.bonusMode && task.bonusMode !== 'global' ? Math.max(0, Math.min(10, Number(task.bonusValue) || 0)) : selfBonus.value;
+    return { mode: ['multiplier', 'add', 'none'].includes(mode) ? mode : 'multiplier', value };
+  }
+  function spontaneousAward(task) {
+    const base = safePoints(task.points);
+    const bonus = effectiveBonus(task);
+    if (bonus.mode === 'none') return { base, bonus: 0, total: base, mode: bonus.mode, value: bonus.value };
+    if (bonus.mode === 'add') {
+      const extra = Math.floor(bonus.value);
+      return { base, bonus: extra, total: Math.min(1000, base + extra), mode: bonus.mode, value: bonus.value };
+    }
+    const total = Math.min(1000, Math.floor(base * bonus.value));
+    return { base, bonus: Math.max(0, total - base), total, mode: bonus.mode, value: bonus.value };
+  }
   function renderTaskSettings() {
     taskListEl.innerHTML = '';
     if (!quickTasks.length) {
@@ -301,7 +341,8 @@
       info.className = 'min-w-0 flex-1';
       const name = document.createElement('div');
       name.className = 'text-xs font-bold text-white break-words';
-      name.textContent = `${task.label}（${safePoints(task.points)}pt）`;
+      const bonusLabel = task.bonusMode && task.bonusMode !== 'global' ? `／個別${task.bonusMode === 'none' ? 'なし' : task.bonusMode === 'add' ? `+${Number(task.bonusValue)||0}pt` : `${Number(task.bonusValue)||0}倍`}` : '／全体設定';
+      name.textContent = `${task.label}（基本${safePoints(task.points)}pt・自発${bonusLabel}）`;
       const desc = document.createElement('div');
       desc.className = 'text-[10px] text-stone-400 break-words';
       desc.textContent = task.text;
@@ -314,6 +355,8 @@
         document.getElementById('task-label').value = task.label;
         document.getElementById('task-text').value = task.text;
         document.getElementById('task-points').value = safePoints(task.points);
+        document.getElementById('task-bonus-mode').value = task.bonusMode || 'global';
+        document.getElementById('task-bonus-value').value = task.bonusValue ?? 2;
         document.getElementById('save-task-button').textContent = '変更を保存';
         document.getElementById('cancel-task-edit').classList.remove('hidden');
         document.getElementById('task-label').focus();
@@ -338,6 +381,8 @@
     document.getElementById('task-label').value = '';
     document.getElementById('task-text').value = '';
     document.getElementById('task-points').value = '1';
+    document.getElementById('task-bonus-mode').value = 'global';
+    document.getElementById('task-bonus-value').value = '2';
     document.getElementById('save-task-button').textContent = '新しい仕事を追加';
     document.getElementById('cancel-task-edit').classList.add('hidden');
   }
@@ -363,7 +408,8 @@
       title.textContent = task.label;
       const points = document.createElement('div');
       points.className = 'text-[10px] text-amber-300 mt-1';
-      points.textContent = `＋${safePoints(task.points)} pt`;
+      const award = spontaneousAward(task);
+      points.textContent = `＋${award.total} pt（基本${award.base}${award.bonus ? `＋ボーナス${award.bonus}` : ''}）`;
       button.append(title, points);
       button.addEventListener('click', () => recordSpontaneousTask(task.id));
       spontaneousButtonsEl.appendChild(button);
@@ -560,7 +606,7 @@
             const latest = await transaction.get(stateRef);
             if (!latest.exists()) transaction.set(stateRef, {
               orders: [], history: [], completedCount: 0, completedDate: todayKey(),
-              pointsTotal: 0, pointsEarnedTotal: 0, pointHistory: [], rewards: defaultRewards.map(item => ({...item})), redemptionHistory: [], quickTasks: defaultTasks.map(task => ({...task})), updatedAt: serverTimestamp()
+              pointsTotal: 0, pointsEarnedTotal: 0, pointHistory: [], rewards: defaultRewards.map(item => ({...item})), redemptionHistory: [], quickTasks: defaultTasks.map(task => ({...task})), selfBonus: { mode: 'multiplier', value: 2 }, updatedAt: serverTimestamp()
             });
           });
         } catch (error) { showError(error, '初期データの作成に失敗しました'); }
@@ -577,7 +623,9 @@
       rewards = data.rewards;
       redemptionHistory = data.redemptionHistory;
       quickTasks = data.quickTasks;
+      selfBonus = data.selfBonus;
       render();
+      syncBonusSettingsUI();
       setStatus('🟢 夫婦で同期中');
       setBusy(false);
       if (snapshot.data().completedDate && snapshot.data().completedDate !== todayKey()) ensureTodayCount();
@@ -608,6 +656,7 @@
           rewards: next.rewards,
           redemptionHistory: next.redemptionHistory,
           quickTasks: next.quickTasks,
+          selfBonus: next.selfBonus,
           updatedAt: serverTimestamp()
         });
       });
@@ -671,16 +720,18 @@
     if (!currentUser) { alert('先にGoogleログインしてください。'); return; }
     const task = quickTasks.find(item => item.id === taskId);
     if (!task) return;
-    if (!confirm(`「${task.label}」を完了として記録し、${safePoints(task.points)} ptを獲得しますか？`)) return;
+    const award = spontaneousAward(task);
+    const awarded = award.total;
+    const bonusDescription = award.bonus ? `（基本${award.base}pt＋ボーナス${award.bonus}pt）` : `（基本${award.base}pt）`;
+    if (!confirm(`「${task.label}」を自分から行った家事として記録しますか？\n獲得ポイント：${awarded} pt ${bonusDescription}`)) return;
     const now = Date.now();
-    const awarded = safePoints(task.points);
     await updateSharedState(state => {
       state.completedCount = state.completedDate === todayKey() ? state.completedCount + 1 : 1;
       state.completedDate = todayKey();
       state.pointsTotal += awarded;
       state.pointsEarnedTotal += awarded;
       const id = `sp-${now}-${Math.random().toString(36).slice(2,8)}`;
-      state.pointHistory.push({ id: `ph-${id}`, type: 'earn', points: awarded, task: task.label, at: now, by: operatorProfile, source: 'spontaneous' });
+      state.pointHistory.push({ id: `ph-${id}`, type: 'earn', points: awarded, basePoints: award.base, bonusPoints: award.bonus, bonusMode: award.mode, bonusValue: award.value, task: task.label, at: now, by: operatorProfile, source: 'spontaneous' });
       state.pointHistory = state.pointHistory.slice(-500);
       state.history.push({ id, text: task.label, points: awarded, pointsAwarded: awarded, status: 'completed', createdAt: now, finishedAt: now, completedBy: operatorProfile, createdByProfile: operatorProfile, source: 'spontaneous', reactions: [] });
       return state;
@@ -793,17 +844,26 @@
     const label = document.getElementById('task-label').value.trim();
     const text = document.getElementById('task-text').value.trim();
     const points = safePoints(document.getElementById('task-points').value);
+    const bonusMode = document.getElementById('task-bonus-mode').value;
+    const bonusValue = Math.max(0, Math.min(10, Number(document.getElementById('task-bonus-value').value) || 0));
     if (!label || !text) { alert('ボタン名と依頼文を入力してください。'); return; }
     if (!currentUser) { alert('先にGoogleログインしてください。'); return; }
     await updateSharedState(state => {
       if (editingTaskId) {
-        state.quickTasks = state.quickTasks.map(task => task.id === editingTaskId ? { ...task, label, text, points } : task);
+        state.quickTasks = state.quickTasks.map(task => task.id === editingTaskId ? { ...task, label, text, points, bonusMode, bonusValue } : task);
       } else {
-        state.quickTasks.push({ id: `task-${Date.now()}-${Math.random().toString(36).slice(2,6)}`, label, text, points });
+        state.quickTasks.push({ id: `task-${Date.now()}-${Math.random().toString(36).slice(2,6)}`, label, text, points, bonusMode, bonusValue });
       }
       return state;
     });
     resetTaskForm();
+  });
+  document.getElementById('save-self-bonus').addEventListener('click', async () => {
+    if (!currentUser) { alert('先にGoogleログインしてください。'); return; }
+    const mode = document.getElementById('self-bonus-mode').value;
+    const value = Math.max(0, Math.min(10, Number(document.getElementById('self-bonus-value').value) || 0));
+    await updateSharedState(state => { state.selfBonus = { mode, value }; return state; });
+    alert('自発ボーナスの全体設定を保存しました。家事ごとの個別設定がある場合は、そちらが優先されます。');
   });
   document.getElementById('cancel-task-edit').addEventListener('click', resetTaskForm);
 
